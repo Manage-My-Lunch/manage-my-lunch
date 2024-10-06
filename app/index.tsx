@@ -1,6 +1,9 @@
-import { Text, View } from "react-native";
+import { Text, View, Button } from "react-native";
+import { useRouter } from "expo-router";
 
 export default function Index() {
+  const router = useRouter();
+
   return (
     <View
       style={{
@@ -10,6 +13,10 @@ export default function Index() {
       }}
     >
       <Text>Edit app/index.tsx to edit this screen.</Text>
+      <Button
+        title="Menu"
+        onPress={() => router.push("/menu")}
+      />
     </View>
   );
 }
