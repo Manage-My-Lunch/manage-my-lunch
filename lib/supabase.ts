@@ -1,7 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import { AppState } from "react-native";
 import "react-native-url-polyfill/auto";
-import storage from "./storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
 
 const supabaseUrl = "https://klfxguptzzjrbbeknpun.supabase.co";
 const supabaseAnonKey =
@@ -9,7 +10,8 @@ const supabaseAnonKey =
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    storage: storage,
+    // https://github.com/supabase/supabase-js/issues/870
+    ...(Platform.OS !== "web" ? { storage: AsyncStorage } : {}),
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
