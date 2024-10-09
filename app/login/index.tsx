@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { View, TextInput, Text, Pressable, StyleSheet, Alert } from "react-native";
+import { View, TextInput, Text, Pressable, StyleSheet, Alert, Image } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
+import Ionicons from '@expo/vector-icons/Ionicons';
+import logo from '../components/logo.png';
 
 /**
  * This Login page handles user authentication for the Manage My Lunch app.
@@ -54,23 +56,36 @@ export default function Login() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Login</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={(text) => setEmail(text)}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={(text) => setPassword(text)}
-        secureTextEntry
-        autoCapitalize="none"
-      />
+      <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Ionicons name="arrow-back-circle-outline" size={36} color="black" />
+      </Pressable>
+
+      <Image source={logo} style={styles.logo} resizeMode="contain" />
+
+      <View style={styles.inputContainer}>
+        <Ionicons name="mail-outline" size={24} color="gray" style={styles.icon} />
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          value={email}
+          onChangeText={(text) => setEmail(text)}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+      </View>
+
+      <View style={styles.inputContainer}>
+        <Ionicons name="lock-closed-outline" size={24} color="gray" style={styles.icon} />
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          value={password}
+          onChangeText={(text) => setPassword(text)}
+          secureTextEntry
+          autoCapitalize="none"
+        />
+      </View>
+
       <Pressable style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Login</Text>
       </Pressable>
@@ -84,19 +99,44 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 16,
+    backgroundColor: '#F7F9FC',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
+  backButton: {
+    position: "absolute",
+    top: 40,
+    left: 16,
+    zIndex: 1,
+  },
+  logo: {
+    width: 200,
+    height: 200,
     marginBottom: 24,
   },
-  input: {
-    width: "100%",
-    padding: 12,
-    marginVertical: 10,
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#00BFA6",
     borderRadius: 8,
+    backgroundColor: '#E0F7FA',
+    marginVertical: 10,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  icon: {
+    marginRight: 10,
+  },
+  input: {
+    flex: 1,
+    padding: 12,
+    color: '#333',
   },
   button: {
     backgroundColor: "#00BFA6",
@@ -104,6 +144,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 60,
     borderRadius: 8,
     marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
   },
   buttonText: {
     color: "#fff",
