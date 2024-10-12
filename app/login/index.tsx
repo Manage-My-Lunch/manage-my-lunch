@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { View, TextInput, Text, Pressable, StyleSheet, Alert, Image } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
@@ -46,9 +46,9 @@ export default function Login() {
     // Route user based on their role
     const role = profileData?.role;
     if (role === "student") {
-      router.push("/menu");
+      router.push("/student");
     } else if (role === "restaurant") {
-      router.push("/restaurant-home");
+      router.push("/restaurant");
     } else {
       Alert.alert("Error", "Unknown role");
     }
