@@ -3,18 +3,18 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function Index() {
-  const [password, setPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const handleReset = async () => {
-    if (password !== confirmPassword) {
+    if (newPassword !== confirmPassword) {
       Alert.alert("Passwords don't match.");
       return;
     }
 
     // TODO: i need to actually text this xd
     const { data, error } = await supabase.auth.updateUser({
-      password: password
+      password: newPassword
     })
 
     if (error) {
@@ -31,8 +31,8 @@ export default function Index() {
       <TextInput
         style={styles.input}
         placeholder="Password"
-        value={password}
-        onChangeText={(text) => setPassword(text)}
+        value={newPassword}
+        onChangeText={(text) => setNewPassword(text)}
         secureTextEntry={true}
         autoCapitalize="none"
       />

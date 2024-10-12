@@ -9,6 +9,7 @@ export default function Index() {
     <Pressable style={styles.button} onPress={() => router.push("/forgot-password")}>
       <Text style={styles.buttonText}>Forgot Password</Text>
     </Pressable>
+    {/* Reset Password is expected to be accessed through email sent on forgot password page */}
     <Pressable style={styles.button} onPress={() => router.push("/reset-password")}>
       <Text style={styles.buttonText}>Reset Password</Text>
     </Pressable>

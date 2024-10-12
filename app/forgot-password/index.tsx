@@ -7,13 +7,14 @@ export default function Index() {
 
   const handleConfirmForget = async () => {
     let { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      /* TODO: FIX THIS REDIRECT SO IT IS FLEXIBLE */
       redirectTo: 'http://localhost:8081/reset-password',
     })
     if (error) {
       Alert.alert("Error", error.message);
     } else {
       Alert.alert(
-        "Check your email",
+        `"Recovery instructions sent to ${email}."`,
         "If an account exists for this email, you'll receive a password reset email."
       );
     }
