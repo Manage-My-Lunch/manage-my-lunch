@@ -3,7 +3,7 @@ import { View, TextInput, Text, Pressable, StyleSheet, Alert, Image } from "reac
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import Ionicons from '@expo/vector-icons/Ionicons';
-import logo from '../components/logo.png';
+import logo from "../assets/img/logo.png";
 
 /**
  * This Login page handles user authentication for the Manage My Lunch app.
@@ -56,7 +56,7 @@ export default function Login() {
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.backButton} onPress={() => router.back()}>
+      <Pressable style={styles.backButton} onPress={() => router.push("/")}>
         <Ionicons name="arrow-back-circle-outline" size={36} color="black" />
       </Pressable>
 

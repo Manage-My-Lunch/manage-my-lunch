@@ -1,6 +1,7 @@
 import { Text, View } from "react-native";
+import withRoleProtection from "../components/withRoleProtection";
 
-export default function Index() {
+function Index() {
   return (
     <View
       style={{
@@ -9,7 +10,9 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
+      <Text>Edit restaurant-home/index.tsx to edit this screen.</Text>
     </View>
   );
 }
+
+export default withRoleProtection(Index, ["restaurant"]);

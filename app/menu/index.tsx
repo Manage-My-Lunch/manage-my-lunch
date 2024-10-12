@@ -1,6 +1,7 @@
 import { Text, View } from "react-native";
+import withRoleProtection from "../components/withRoleProtection";
 
-export default function Index() {
+function Index() {
   return (
     <View
       style={{
@@ -13,3 +14,5 @@ export default function Index() {
     </View>
   );
 }
+
+export default withRoleProtection(Index, ["student"]);
