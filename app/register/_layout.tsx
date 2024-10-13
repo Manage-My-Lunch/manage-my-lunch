@@ -1,6 +1,6 @@
 import { UniversityList, UserData } from "@/components/register/types";
 import { supabase } from "@/lib/supabase";
-import { router, Slot } from "expo-router";
+import { Link, Slot } from "expo-router";
 import {
   createContext,
   FC,
@@ -14,8 +14,14 @@ import {
   DimensionValue,
   KeyboardAvoidingView,
   ScaledSize,
+  View,
+  Text,
+  ActivityIndicator,
 } from "react-native";
 
+/**
+ * Maintains a shareable context of the form's data such as the user's input and university information from the database
+ */
 const FormContext = createContext<
   | {
       data: {
@@ -27,6 +33,7 @@ const FormContext = createContext<
   | undefined
 >(undefined);
 
+// Setup the form context
 export const useFormContext = () => {
   const context = useContext(FormContext);
 
@@ -37,7 +44,9 @@ export const useFormContext = () => {
   return context;
 };
 
+// Wrapper component to provide form context to all children
 export const FormProvider: FC<{ children: ReactNode }> = ({ children }) => {
+  // Initialise user data state
   const [formData, setFormData] = useState<UserData>({
     firstName: "",
     lastName: "",
@@ -48,11 +57,16 @@ export const FormProvider: FC<{ children: ReactNode }> = ({ children }) => {
     campus: null,
   });
 
+  // Helper method to modify user data
   const updateFormData = (data: Partial<UserData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
   };
 
+  // Track screen width
   const [width, setWidth] = useState<DimensionValue>("50%" as DimensionValue);
+  // Track data loading state
+  const [loading, setLoading] = useState(true);
+  // University data from database
   const [universities, setUniversities] = useState<UniversityList | null>(null);
 
   useEffect(() => {
@@ -63,6 +77,7 @@ export const FormProvider: FC<{ children: ReactNode }> = ({ children }) => {
       setDimensions(window);
     });
 
+    // Fetch university data
     fetchData();
 
     return () => subscription?.remove();
@@ -79,39 +94,88 @@ export const FormProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
+  // Fetch university data from database
   const fetchData = async () => {
     const { data, error } = await supabase
       .from("university")
       .select("*, campus(*)");
 
+    // The user will see an error message if data is null so we could just print to the console
     if (error !== null) {
       console.error(error);
+      setLoading(false);
       return;
     }
 
+    // Set the data
     setUniversities(data);
+    // We have loaded all data
+    setLoading(false);
   };
 
-  return (
-    <KeyboardAvoidingView
-      style={{
-        margin: "auto",
-        width,
-        height: "100%",
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <FormContext.Provider
-        value={{
-          data: { formData, updateFormData },
-          universities,
+  if (loading) {
+    // Loading indicator
+    return (
+      <View
+        style={{
+          height: "100%",
+          justifyContent: "center",
+          alignItems: "center",
         }}
       >
-        {children}
-      </FormContext.Provider>
-    </KeyboardAvoidingView>
-  );
+        <ActivityIndicator size="large"></ActivityIndicator>
+      </View>
+    );
+  } else {
+    // If universities is still null after we have finished loading, assume the data failed to load
+    if (universities === null) {
+      return (
+        <View
+          style={{
+            height: "100%",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <Text>
+            Failed to load universities from database. Please try again later.
+          </Text>
+          <Link
+            href={"/"}
+            style={{
+              marginTop: 20,
+              color: "#037ffc",
+              textAlign: "center",
+            }}
+          >
+            Home
+          </Link>
+        </View>
+      );
+    } else {
+      // Render the children
+      return (
+        <KeyboardAvoidingView
+          style={{
+            margin: "auto",
+            width,
+            height: "100%",
+            justifyContent: "center",
+            alignItems: "center",
+          }}
+        >
+          <FormContext.Provider
+            value={{
+              data: { formData, updateFormData },
+              universities,
+            }}
+          >
+            {children}
+          </FormContext.Provider>
+        </KeyboardAvoidingView>
+      );
+    }
+  }
 };
 
 export default function Layout() {

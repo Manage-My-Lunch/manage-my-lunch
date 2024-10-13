@@ -12,25 +12,32 @@ import { Link, router } from "expo-router";
 import { useFormContext } from "./_layout";
 
 export default function Index() {
+  // Form context
   const { data } = useFormContext();
+  // Error state
   const [error, setError] = useState("");
 
+  // Handle when the user has pressed the next button/submitted this part of the form
   const handleNext = async () => {
     setError("");
 
+    // Use Zod to verify the data the user has given us
     const parse = await formSchema.safeParseAsync({
       firstName: data.formData.firstName,
       lastName: data.formData.lastName,
     });
 
+    // Show the Zod error
     if (!parse.success) {
       setError(parse.error.errors[0].message);
       return;
     }
 
+    // Go to the next part of the process
     router.push("/register/credentials");
   };
 
+  // A reference to the fields in the form to allow us to navigate between them using the keyboard
   const lastField = useRef<TextInput>(null);
 
   return (
@@ -135,6 +142,7 @@ const styles = StyleSheet.create({
   },
 });
 
+// Zod Schema to validate the form
 const formSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),

@@ -12,31 +12,39 @@ import { Link, router } from "expo-router";
 import { useFormContext } from "./_layout";
 
 export default function Credentials() {
+  // Form context
   const { data } = useFormContext();
+  // Error state
   const [error, setError] = useState("");
 
+  // Handle when the user has pressed the next button/submitted this part of the form
   const handleNext = async () => {
     setError("");
 
+    // Use Zod to verify the data the user has given us
     const parse = await formSchema.safeParseAsync({
       email: data.formData.email,
       password: data.formData.password,
       cpassword: data.formData.cpassword,
     });
 
+    // Show the Zod error
     if (!parse.success) {
       setError(parse.error.errors[0].message);
       return;
     }
 
+    // Check that the passwords match since Zod doesn't do this for us
     if (data.formData.password !== data.formData.cpassword) {
       setError("Passwords do not match");
       return;
     }
 
+    // Go to the next part of the process
     router.push("/register/university");
   };
 
+  // A reference to the fields in the form to allow us to navigate between them using the keyboard
   const passwordField = useRef<TextInput>(null);
   const cPasswordField = useRef<TextInput>(null);
 
@@ -47,7 +55,7 @@ export default function Credentials() {
       onPointerDown={Keyboard.dismiss}
     >
       <Text style={styles.heading}>Register</Text>
-      <Text style={{ width: "100%", textAlign: "center" }}>
+      <Text style={{ textAlign: "center" }}>
         Next we need your email to contact you and a password to keep your
         account secure.
       </Text>
@@ -74,7 +82,7 @@ export default function Credentials() {
         style={{
           borderWidth: 1,
           borderRadius: 4,
-          width: "100%",
+          minWidth: "100%",
           marginTop: 20,
           padding: 10,
         }}
@@ -102,7 +110,7 @@ export default function Credentials() {
         style={{
           borderWidth: 1,
           borderRadius: 4,
-          width: "100%",
+          minWidth: "100%",
           marginTop: 20,
           padding: 10,
         }}
@@ -130,7 +138,7 @@ export default function Credentials() {
         style={{
           borderWidth: 1,
           borderRadius: 4,
-          width: "100%",
+          minWidth: "100%",
           marginTop: 20,
           padding: 10,
         }}
@@ -141,7 +149,7 @@ export default function Credentials() {
           marginTop: 20,
           backgroundColor: "#037ffc",
           padding: 15,
-          width: "100%",
+          minWidth: "100%",
           borderRadius: 6,
         }}
       >
@@ -183,6 +191,7 @@ const styles = StyleSheet.create({
   },
 });
 
+// Zod Schema to validate the form
 const formSchema = z.object({
   email: z.string().email("Email is required").min(1, "Email is required"),
   password: z.string().min(8, "Password must be at least 8 characters long"),

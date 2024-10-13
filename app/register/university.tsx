@@ -12,19 +12,25 @@ import { useFormContext } from "./_layout";
 import { Picker } from "@react-native-picker/picker";
 
 export default function Credentials() {
+  // Form context
   const { data, universities } = useFormContext();
+  // Error state
   const [error, setError] = useState("");
+  // Indexes of the university and campus in the universities array
   const [university, setUniversity] = useState(0);
   const [campus, setCampus] = useState(0);
 
+  // Handle when the user has pressed the next button/submitted this part of the form
   const handleNext = async () => {
     setError("");
 
+    // Universities could be null although we should never reach this point if they are
     if (universities === undefined || universities === null) {
       setError("Could not load university. Please try again later.");
       return;
     }
 
+    // Check edge cases where somehow the user managed to not select a university
     if (
       university < 0 ||
       university >= universities.length ||
@@ -35,6 +41,7 @@ export default function Credentials() {
       return;
     }
 
+    // Check edge cases where somehow the user managed to not select a campus
     if (
       universities[university].campus.length === 0 ||
       universities[university].campus[campus] === undefined ||
@@ -46,14 +53,17 @@ export default function Credentials() {
       return;
     }
 
+    // Update the form data with the correct university and campus objects
     data.updateFormData({
       university: universities[university],
       campus: universities[university].campus[campus],
     });
 
+    // Go to the next part of the process
     router.push("/register/submit");
   };
 
+  // Although we shouldn't get to this point, if we do then render an error message
   if (universities === null) {
     return (
       <View style={styles.view}>
@@ -80,12 +90,13 @@ export default function Credentials() {
         onPointerDown={Keyboard.dismiss}
       >
         <Text style={styles.heading}>Register</Text>
-        <Text style={{ width: "100%", textAlign: "center" }}>
+        <Text style={{ textAlign: "center" }}>
           Finally, please specify which univeristy and campus you are will be
           ordering from.
         </Text>
         <Text style={{ color: "red" }}>{error}</Text>
         <Picker
+          itemStyle={{ minWidth: "100%" }}
           selectedValue={university}
           onValueChange={(v, i) => {
             setUniversity(i);
@@ -100,6 +111,7 @@ export default function Credentials() {
           })}
         </Picker>
         <Picker
+          itemStyle={{ minWidth: "100%" }}
           selectedValue={campus}
           onValueChange={(v, i) => {
             setCampus(i);
@@ -122,7 +134,7 @@ export default function Credentials() {
             marginTop: 20,
             backgroundColor: "#037ffc",
             padding: 15,
-            width: "100%",
+            minWidth: "100%",
             borderRadius: 6,
           }}
         >

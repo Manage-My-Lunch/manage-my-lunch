@@ -1,3 +1,4 @@
+// User registration data
 export type UserData = {
     firstName: string,
     lastName: string,
@@ -8,15 +9,10 @@ export type UserData = {
     campus: Campus | null
 }
 
-export enum Indices {
-    NAMES = 0,
-    CREDENTIALS = 1,
-    UNIVERSITY = 2
-}
-
+// List of universities and their campuses
 export type UniversityList = University[]
 
-
+// Campus
 export type Campus = {
     id: string,
     name: string,
@@ -25,6 +21,7 @@ export type Campus = {
     address_city: string
 }
 
+// University
 export type University = {
     id: string,
     name: string,
