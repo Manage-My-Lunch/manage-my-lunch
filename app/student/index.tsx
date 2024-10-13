@@ -15,4 +15,5 @@ function Index() {
   );
 }
 
+// Protect the component with role-based access for students
 export default withRoleProtection(Index, ["student"]);

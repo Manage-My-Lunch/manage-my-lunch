@@ -54,6 +54,7 @@ export default function Login() {
     }
   };
 
+  // Form to enter email and password to login
   return (
     <View style={styles.container}>
       <Pressable style={styles.backButton} onPress={() => router.push("/")}>
@@ -93,6 +94,7 @@ export default function Login() {
   );
 }
 
+// Styling for login page
 const styles = StyleSheet.create({
   container: {
     flex: 1,
