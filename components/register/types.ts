@@ -4,7 +4,8 @@ export type UserData = {
     email: string,
     password: string,
     cpassword: string, // Confirm password
-
+    university: number,
+    campus: number
 }
 
 export enum Indices {

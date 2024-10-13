@@ -11,7 +11,7 @@ import { z } from "zod";
 import { Link, router } from "expo-router";
 import { useFormContext } from "./_layout";
 
-export default function Index() {
+export default function Credentials() {
   const { data, style } = useFormContext();
   const [error, setError] = useState("");
 
@@ -19,8 +19,9 @@ export default function Index() {
     setError("");
 
     const parse = await formSchema.safeParseAsync({
-      firstName: data.formData.firstName,
-      lastName: data.formData.lastName,
+      email: data.formData.email,
+      password: data.formData.password,
+      cpassword: data.formData.cpassword,
     });
 
     if (!parse.success) {
@@ -28,10 +29,14 @@ export default function Index() {
       return;
     }
 
-    router.push("/register/credentials");
+    if (data.formData.password !== data.formData.cpassword) {
+      setError("Passwords do not match");
+      return;
+    }
   };
 
-  const lastField = useRef<TextInput>(null);
+  const passwordField = useRef<TextInput>(null);
+  const cPasswordField = useRef<TextInput>(null);
 
   return (
     <KeyboardAvoidingView
@@ -40,24 +45,28 @@ export default function Index() {
       onPointerDown={Keyboard.dismiss}
     >
       <Text style={styles.heading}>Register</Text>
-      <Text>To begin, please provide your names.</Text>
+      <Text style={{ width: style.width, textAlign: "center" }}>
+        Next we need your email to contact you and a password to keep your
+        account secure.
+      </Text>
       <Text style={{ color: "red" }}>{error}</Text>
       <TextInput
-        placeholder="First Name"
+        placeholder="Email"
         placeholderTextColor="#555"
         textAlign="left"
-        inputMode="text"
-        autoComplete="name-given"
+        inputMode="email"
+        autoCapitalize="none"
+        autoComplete="email"
         spellCheck={false}
-        textContentType="givenName"
+        textContentType="emailAddress"
         enterKeyHint="next"
         enablesReturnKeyAutomatically
         blurOnSubmit={false}
-        onSubmitEditing={() => lastField.current?.focus()}
+        onSubmitEditing={() => passwordField.current?.focus()}
         onChange={(e) => {
           data.updateFormData({
             ...data.formData,
-            firstName: e.nativeEvent.text,
+            email: e.nativeEvent.text,
           });
         }}
         style={{
@@ -69,22 +78,51 @@ export default function Index() {
         }}
       ></TextInput>
       <TextInput
-        ref={lastField}
-        placeholder="Last Name"
+        ref={passwordField}
+        placeholder="Password"
         placeholderTextColor="#555"
         textAlign="left"
         inputMode="text"
-        autoComplete="name-family"
+        autoCapitalize="none"
         spellCheck={false}
-        textContentType="familyName"
+        textContentType="password"
         enterKeyHint="next"
         enablesReturnKeyAutomatically
+        secureTextEntry
+        blurOnSubmit={false}
+        onSubmitEditing={() => cPasswordField.current?.focus()}
+        onChange={(e) => {
+          data.updateFormData({
+            ...data.formData,
+            password: e.nativeEvent.text,
+          });
+        }}
+        style={{
+          borderWidth: 1,
+          borderRadius: 4,
+          width: style.width,
+          marginTop: 20,
+          padding: 10,
+        }}
+      ></TextInput>
+      <TextInput
+        ref={cPasswordField}
+        placeholder="Confirm Password"
+        placeholderTextColor="#555"
+        textAlign="left"
+        inputMode="text"
+        autoCapitalize="none"
+        spellCheck={false}
+        textContentType="password"
+        enterKeyHint="next"
+        enablesReturnKeyAutomatically
+        secureTextEntry
         blurOnSubmit={false}
         onSubmitEditing={handleNext}
         onChange={(e) => {
           data.updateFormData({
             ...data.formData,
-            lastName: e.nativeEvent.text,
+            cpassword: e.nativeEvent.text,
           });
         }}
         style={{
@@ -108,12 +146,21 @@ export default function Index() {
         <Text style={{ color: "white", textAlign: "center" }}>Next</Text>
       </Pressable>
       <Link
+        href={"/register"}
+        style={{
+          marginTop: 20,
+          color: "#037ffc",
+          textAlign: "center",
+        }}
+      >
+        Back
+      </Link>
+      <Link
         href={"/"}
         style={{
           marginTop: 20,
-          width: style.width,
-          textAlign: "center",
           color: "red",
+          textAlign: "center",
         }}
       >
         Cancel
@@ -135,6 +182,7 @@ const styles = StyleSheet.create({
 });
 
 const formSchema = z.object({
-  firstName: z.string().min(1, "First name is required"),
-  lastName: z.string().min(1, "Last name is required"),
+  email: z.string().email("Email is required").min(1, "Email is required"),
+  password: z.string().min(8, "Password must be at least 8 characters long"),
+  cpassword: z.string().min(1, "Confirm your password"),
 });
