@@ -4,8 +4,8 @@ export type UserData = {
     email: string,
     password: string,
     cpassword: string, // Confirm password
-    university: number,
-    campus: number
+    university: University | null,
+    campus: Campus | null
 }
 
 export enum Indices {
@@ -14,12 +14,20 @@ export enum Indices {
     UNIVERSITY = 2
 }
 
-export type UniversityList = {
+export type UniversityList = University[]
+
+
+export type Campus = {
+    id: string,
+    name: string,
+    address_street: string,
+    address_suburb: string,
+    address_city: string
+}
+
+export type University = {
     id: string,
     name: string,
     abbreviation: string,
-    campus: {
-        id: string,
-        name: string
-    }[]
-}[]
+    campus: Campus[]
+}

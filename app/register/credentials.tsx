@@ -12,7 +12,7 @@ import { Link, router } from "expo-router";
 import { useFormContext } from "./_layout";
 
 export default function Credentials() {
-  const { data, style } = useFormContext();
+  const { data } = useFormContext();
   const [error, setError] = useState("");
 
   const handleNext = async () => {
@@ -33,6 +33,8 @@ export default function Credentials() {
       setError("Passwords do not match");
       return;
     }
+
+    router.push("/register/university");
   };
 
   const passwordField = useRef<TextInput>(null);
@@ -45,7 +47,7 @@ export default function Credentials() {
       onPointerDown={Keyboard.dismiss}
     >
       <Text style={styles.heading}>Register</Text>
-      <Text style={{ width: style.width, textAlign: "center" }}>
+      <Text style={{ width: "100%", textAlign: "center" }}>
         Next we need your email to contact you and a password to keep your
         account secure.
       </Text>
@@ -72,7 +74,7 @@ export default function Credentials() {
         style={{
           borderWidth: 1,
           borderRadius: 4,
-          width: style.width,
+          width: "100%",
           marginTop: 20,
           padding: 10,
         }}
@@ -100,7 +102,7 @@ export default function Credentials() {
         style={{
           borderWidth: 1,
           borderRadius: 4,
-          width: style.width,
+          width: "100%",
           marginTop: 20,
           padding: 10,
         }}
@@ -128,7 +130,7 @@ export default function Credentials() {
         style={{
           borderWidth: 1,
           borderRadius: 4,
-          width: style.width,
+          width: "100%",
           marginTop: 20,
           padding: 10,
         }}
@@ -139,7 +141,7 @@ export default function Credentials() {
           marginTop: 20,
           backgroundColor: "#037ffc",
           padding: 15,
-          width: style.width,
+          width: "100%",
           borderRadius: 6,
         }}
       >

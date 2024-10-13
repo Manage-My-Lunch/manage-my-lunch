@@ -12,7 +12,7 @@ import { Link, router } from "expo-router";
 import { useFormContext } from "./_layout";
 
 export default function Index() {
-  const { data, style } = useFormContext();
+  const { data } = useFormContext();
   const [error, setError] = useState("");
 
   const handleNext = async () => {
@@ -63,7 +63,7 @@ export default function Index() {
         style={{
           borderWidth: 1,
           borderRadius: 4,
-          width: style.width,
+          width: "100%",
           marginTop: 20,
           padding: 10,
         }}
@@ -90,7 +90,7 @@ export default function Index() {
         style={{
           borderWidth: 1,
           borderRadius: 4,
-          width: style.width,
+          width: "100%",
           marginTop: 20,
           padding: 10,
         }}
@@ -101,7 +101,7 @@ export default function Index() {
           marginTop: 20,
           backgroundColor: "#037ffc",
           padding: 15,
-          width: style.width,
+          width: "100%",
           borderRadius: 6,
         }}
       >
@@ -111,7 +111,7 @@ export default function Index() {
         href={"/"}
         style={{
           marginTop: 20,
-          width: style.width,
+          width: "100%",
           textAlign: "center",
           color: "red",
         }}
@@ -125,6 +125,7 @@ export default function Index() {
 const styles = StyleSheet.create({
   view: {
     height: "100%",
+    width: "100%",
     justifyContent: "center",
     alignItems: "center",
   },

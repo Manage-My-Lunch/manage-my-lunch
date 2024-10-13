@@ -1,5 +1,6 @@
-import { UserData } from "@/components/register/types";
-import { Slot } from "expo-router";
+import { UniversityList, UserData } from "@/components/register/types";
+import { supabase } from "@/lib/supabase";
+import { router, Slot } from "expo-router";
 import {
   createContext,
   FC,
@@ -8,7 +9,12 @@ import {
   useEffect,
   useState,
 } from "react";
-import { Dimensions, DimensionValue, ScaledSize } from "react-native";
+import {
+  Dimensions,
+  DimensionValue,
+  KeyboardAvoidingView,
+  ScaledSize,
+} from "react-native";
 
 const FormContext = createContext<
   | {
@@ -16,7 +22,7 @@ const FormContext = createContext<
         formData: UserData;
         updateFormData: (data: Partial<UserData>) => void;
       };
-      style: { width: DimensionValue };
+      universities: UniversityList | null;
     }
   | undefined
 >(undefined);
@@ -38,8 +44,8 @@ export const FormProvider: FC<{ children: ReactNode }> = ({ children }) => {
     email: "",
     password: "",
     cpassword: "",
-    university: 0,
-    campus: 0,
+    university: null,
+    campus: null,
   });
 
   const updateFormData = (data: Partial<UserData>) => {
@@ -47,6 +53,7 @@ export const FormProvider: FC<{ children: ReactNode }> = ({ children }) => {
   };
 
   const [width, setWidth] = useState<DimensionValue>("50%" as DimensionValue);
+  const [universities, setUniversities] = useState<UniversityList | null>(null);
 
   useEffect(() => {
     // Set the dimensions on load
@@ -55,13 +62,16 @@ export const FormProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const subscription = Dimensions.addEventListener("change", ({ window }) => {
       setDimensions(window);
     });
+
+    fetchData();
+
     return () => subscription?.remove();
   }, []);
 
   // Sets the width of certain elements given the window's dimensions
   const setDimensions = (window: ScaledSize) => {
     if (window.width >= 1024) {
-      setWidth("25%");
+      setWidth("30%");
     } else if (window.width >= 728) {
       setWidth("50%");
     } else {
@@ -69,12 +79,38 @@ export const FormProvider: FC<{ children: ReactNode }> = ({ children }) => {
     }
   };
 
+  const fetchData = async () => {
+    const { data, error } = await supabase
+      .from("university")
+      .select("*, campus(*)");
+
+    if (error !== null) {
+      console.error(error);
+      return;
+    }
+
+    setUniversities(data);
+  };
+
   return (
-    <FormContext.Provider
-      value={{ data: { formData, updateFormData }, style: { width } }}
+    <KeyboardAvoidingView
+      style={{
+        margin: "auto",
+        width,
+        height: "100%",
+        justifyContent: "center",
+        alignItems: "center",
+      }}
     >
-      {children}
-    </FormContext.Provider>
+      <FormContext.Provider
+        value={{
+          data: { formData, updateFormData },
+          universities,
+        }}
+      >
+        {children}
+      </FormContext.Provider>
+    </KeyboardAvoidingView>
   );
 };
 
