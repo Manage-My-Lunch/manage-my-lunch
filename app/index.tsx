@@ -11,9 +11,6 @@ export default function Index() {
       <Pressable style={styles.button} onPress={() => router.push("/login")}>
         <Text style={styles.buttonText}>Login</Text>
       </Pressable>
-      <Pressable style={styles.button} onPress={() => router.push("/register")}>
-        <Text style={styles.buttonText}>Reigster</Text>
-      </Pressable>
     </View>
   );
 }
