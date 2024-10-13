@@ -2,78 +2,102 @@ import { Text, View, StyleSheet, FlatList, TouchableOpacity, Button, TextInput }
 import { useRouter } from "expo-router";
 import { useState, useEffect } from "react";
 import React from "react";
+import { supabase } from '@/lib/supabase';
 
 // Define the MenuItemType at the top of the file
-type MenuItemType = {
+export type MenuItemType = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  restaurant: string | null;
+  image_url: string;
+  description: string;
+  price: number;
+  available: boolean;
+  name: string;
   category: string;
+};
+
+export type AllergenType = {
+  id: string;
+  created_at: string;
+  allergen: string;
+  item: string;
+};
+
+export type RestaurantType = {
   id: string;
   name: string;
-  price: number;
-  description?: string;
-  options?: string[]; // Add options field
+  description: string;
+  is_open: boolean;
 };
 
 export default function Menu() {
   const router = useRouter();
   
-  const [menuItems, setMenuItems] = useState<MenuItemType[]>([
-    {
-      id: '1',
-      name: 'Sandwich',
-      price: 5,
-      category: 'Main',
-      options: ['Add Cheese', 'Extra Meat', 'Gluten-Free Bread'],
-    },
-    {
-      id: '2',
-      name: 'Salad',
-      price: 7,
-      category: 'Side',
-      options: ['Add Chicken', 'Extra Dressing', 'No Onions'],
-    },
-    {
-      id: '3',
-      name: 'Pizza',
-      price: 8,
-      category: 'Main',
-      options: ['Extra Cheese', 'Thin Crust', 'Stuffed Crust'],
-    },
-    {
-      id: '4',
-      name: 'Soda',
-      price: 2,
-      category: 'Drink',
-      options: ['No Ice', 'Extra Lemon'],
-    },
-    {
-      id: '5',
-      name: 'Ice Cream',
-      price: 3,
-      category: 'Dessert',
-      options: ['Chocolate Sauce', 'Sprinkles', 'Whipped Cream'],
-    },
-  ]);
-
+  const [menuItems, setMenuItems] = useState<MenuItemType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredItems, setFilteredItems] = useState<MenuItemType[]>(menuItems);
+  const [filteredItems, setFilteredItems] = useState<MenuItemType[]>([]);
   const [activeFilter, setActiveFilter] = useState('');
+  const [restaurant, setRestaurant] = useState<RestaurantType | null>(null);
+
+  useEffect(() => {
+    fetchRestaurantAndMenuItems();
+  }, []);
 
   useEffect(() => {
     filterItems();
   }, [searchQuery, activeFilter]);
 
-  const filterItems = () => {
-    let filtered = menuItems.filter(item =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+  const fetchRestaurantAndMenuItems = async () => {
+    try {
+      setLoading(true);
+      const { data: restaurantData, error: restaurantError } = await supabase
+        .from('restaurant')
+        .select('*')
+        .single();
 
-    if (activeFilter === 'price') {
-      filtered = filtered.sort((a, b) => a.price - b.price);
-    } else if (activeFilter === 'category') {
-      filtered = filtered.sort((a, b) => a.category.localeCompare(b.category));
+      if (restaurantError) throw restaurantError;
+
+      setRestaurant(restaurantData);
+
+      const { data: menuData, error: menuError } = await supabase
+        .from('item')
+        .select('*');
+
+      if (menuError) throw menuError;
+
+      console.log('Menu items fetched:', menuData);
+
+      setMenuItems(menuData);
+      setFilteredItems(menuData);
+    } catch (error) {
+      setError('Failed to fetch restaurant and menu items');
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Filter items locally without making additional API calls
+  const filterItems = () => {
+    let items = [...menuItems];
+
+    if (searchQuery) {
+      items = items.filter(item =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
     }
 
-    setFilteredItems(filtered);
+    if (activeFilter === 'price') {
+      items.sort((a, b) => a.price - b.price);
+    } else if (activeFilter === 'category') {
+      items.sort((a, b) => a.category.localeCompare(b.category));
+    }
+
+    setFilteredItems(items);
   };
 
   const renderItem = ({ item }: { item: MenuItemType }) => (
@@ -82,23 +106,28 @@ export default function Menu() {
       onPress={() =>
         router.push({
           pathname: '/menu/detail',
-          params: { item: JSON.stringify(item) },
+          params: { id: item.id },
         })
       }
     >
       <Text style={styles.title}>{item.name}</Text>
-      <Text style={styles.price}>${item.price}</Text>
+      <Text style={styles.price}>${item.price.toFixed(2)}</Text>
       <Text style={styles.category}>{item.category}</Text>
+      {!item.available && <Text style={styles.unavailable}>Unavailable</Text>}
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
-      <View style={styles.restaurantInfo}>
-        <Text style={styles.restaurantName}>Sample Restaurant</Text>
-        <Text style={styles.restaurantDescription}>Delicious food for everyone</Text>
-        <Text style={styles.restaurantRating}>Rating: 4.5 / 5</Text>
-      </View>
+      {restaurant && (
+        <View style={styles.restaurantInfo}>
+          <Text style={styles.restaurantName}>{restaurant.name}</Text>
+          <Text style={styles.restaurantDescription}>{restaurant.description}</Text>
+          <Text style={styles.restaurantStatus}>
+            Status: {restaurant.is_open ? 'Open' : 'Closed'}
+          </Text>
+        </View>
+      )}
 
       <View style={styles.promotions}>
         <Text style={styles.promotionText}>20% off on all main dishes!</Text>
@@ -114,25 +143,43 @@ export default function Menu() {
       <View style={styles.filterButtons}>
         <Button 
           title="Price" 
-          onPress={() => setActiveFilter(activeFilter === 'price' ? '' : 'price')} 
+          onPress={() => setActiveFilter('price')} 
           color={activeFilter === 'price' ? '#00BFA6' : undefined}
         />
         <Button 
           title="Category" 
-          onPress={() => setActiveFilter(activeFilter === 'category' ? '' : 'category')} 
+          onPress={() => setActiveFilter('category')} 
           color={activeFilter === 'category' ? '#00BFA6' : undefined}
         />
+        <Button
+          title="Clear Filters"
+          onPress={() => {
+            setSearchQuery('');
+            setActiveFilter('');
+          }}
+        />
       </View>
-      <FlatList
-        data={filteredItems}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
-      />
-
-      <TouchableOpacity style={styles.cartButton} onPress={() => {/* Navigate to cart */}}>
-        <Text style={styles.cartButtonText}>Cart (0)</Text>
-      </TouchableOpacity>
+      
+      {loading && (
+        <View style={styles.loadingContainer}>
+          <Text>Loading menu items...</Text>
+        </View>
+      )}
+      
+      {error && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{error}</Text>
+        </View>
+      )}
+      
+      {!loading && !error && (
+        <FlatList
+          data={filteredItems}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.list}
+        />
+      )}
     </View>
   );
 }
@@ -237,5 +284,27 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 5,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+  },
+  unavailable: {
+    color: 'red',
+    fontStyle: 'italic',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
   },
 });

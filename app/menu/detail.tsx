@@ -1,91 +1,97 @@
 import { Text, View, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import React, { useState } from "react";
-
-// Define the possible option keys dynamically
-type OptionKeys = string;
+import React, { useState, useEffect } from "react";
+import { supabase } from '@/lib/supabase';
+import { MenuItemType, AllergenType } from "./index";
 
 export default function MenuItemDetail() {
-  const { item } = useLocalSearchParams();
-  const menuItem = item ? JSON.parse(item as string) : null;
+  const { id, restaurantId } = useLocalSearchParams();
+  const [menuItem, setMenuItem] = useState<MenuItemType | null>(null);
+  const [allergens, setAllergens] = useState<AllergenType[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!menuItem) {
+  useEffect(() => {
+    fetchMenuItem();
+  }, [id]);
+
+  const fetchMenuItem = async () => {
+    if (!id) return;
+    
+    try {
+      setLoading(true);
+      const { data: itemData, error: itemError } = await supabase
+        .from('item')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (itemError) throw itemError;
+
+      const { data: allergenData, error: allergenError } = await supabase
+        .from('item_allergen')
+        .select('*')
+        .eq('item', id);
+
+      if (allergenError) throw allergenError;
+
+      console.log('Fetched menu item:', itemData);
+      console.log('Fetched allergens:', allergenData);
+
+      setMenuItem(itemData as MenuItemType);
+      setAllergens(allergenData as AllergenType[]);
+    } catch (error) {
+      setError('Failed to fetch menu item');
+      console.error('Error fetching menu item:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
     return (
       <View style={styles.container}>
-        <Text>Item not found.</Text>
+        <Text>Loading item details...</Text>
       </View>
     );
   }
 
-  // Initialize options state based on menuItem.options
-  const initialOptionsState = menuItem.options?.reduce(
-    (optionsState: Record<OptionKeys, boolean>, option: string) => {
-      optionsState[option] = false;
-      return optionsState;
-    },
-    {}
-  ) || {};
-  
-  const [options, setOptions] = useState<Record<OptionKeys, boolean>>(initialOptionsState);
-
-  const toggleOption = (option: OptionKeys) => {
-    setOptions((prevOptions) => ({
-      ...prevOptions,
-      [option]: !prevOptions[option],
-    }));
-  };
-
-  // Check if menuItem.options exists and has options
-  if (!menuItem.options || menuItem.options.length === 0) {
+  if (error || !menuItem) {
     return (
-      <ScrollView style={styles.container}>
-        <Text style={styles.title}>{menuItem.name}</Text>
-        <Text style={styles.price}>${menuItem.price}</Text>
-        <Text style={styles.description}>{menuItem.description}</Text>
-        {/* No customization options available */}
-        <TouchableOpacity
-          style={styles.addToCartButton}
-          onPress={() => {
-            // Add to cart logic
-          }}
-        >
-          <Text style={styles.addToCartButtonText}>Add to Cart</Text>
-        </TouchableOpacity>
-      </ScrollView>
+      <View style={styles.container}>
+        <Text>{error || 'Item not found.'}</Text>
+      </View>
     );
   }
 
   return (
     <ScrollView style={styles.container}>
       <Text style={styles.title}>{menuItem.name}</Text>
-      <Text style={styles.price}>${menuItem.price}</Text>
+      <Text style={styles.price}>${menuItem.price.toFixed(2)}</Text>
       <Text style={styles.description}>{menuItem.description}</Text>
+      {!menuItem.available && <Text style={styles.unavailable}>Currently Unavailable</Text>}
 
-      {menuItem.options && menuItem.options.length > 0 && (
-        <View style={styles.optionsContainer}>
-          <Text style={styles.optionsTitle}>Customize your order:</Text>
-          {menuItem.options.map((option: string) => (
-            <TouchableOpacity
-              key={option}
-              style={[
-                styles.optionButton,
-                options[option] && styles.optionButtonSelected,
-              ]}
-              onPress={() => toggleOption(option)}
-            >
-              <Text style={styles.optionButtonText}>{option}</Text>
-            </TouchableOpacity>
+      {allergens.length > 0 && (
+        <View style={styles.allergensContainer}>
+          <Text style={styles.allergensTitle}>Allergens:</Text>
+          {allergens.map((allergen) => (
+            <Text key={allergen.id} style={styles.allergenItem}>
+              • {allergen.allergen}
+            </Text>
           ))}
         </View>
       )}
 
       <TouchableOpacity
-        style={styles.addToCartButton}
+        style={[styles.addToCartButton, !menuItem.available && styles.disabledButton]}
         onPress={() => {
           // Add to cart logic
         }}
+        disabled={!menuItem.available}
       >
-        <Text style={styles.addToCartButtonText}>Add to Cart</Text>
+        <Text style={styles.addToCartButtonText}>
+          {menuItem.available ? 'Add to Cart' : 'Unavailable'}
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -111,27 +117,6 @@ const styles = StyleSheet.create({
     color: "#555",
     marginBottom: 20,
   },
-  optionsContainer: {
-    marginBottom: 20,
-  },
-  optionsTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  optionButton: {
-    backgroundColor: "#f0f0f0",
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 10,
-  },
-  optionButtonSelected: {
-    backgroundColor: "#00BFA6",
-  },
-  optionButtonText: {
-    fontSize: 16,
-    textAlign: "center",
-  },
   addToCartButton: {
     backgroundColor: "#4CAF50",
     padding: 15,
@@ -142,5 +127,25 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
+  },
+  unavailable: {
+    color: 'red',
+    fontStyle: 'italic',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
+  },
+  allergensContainer: {
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  allergensTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+  },
+  allergenItem: {
+    fontSize: 16,
+    marginBottom: 5,
   },
 });
