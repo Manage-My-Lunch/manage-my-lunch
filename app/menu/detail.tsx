@@ -1,4 +1,4 @@
-import { Text, View, StyleSheet, TouchableOpacity, ScrollView } from "react-native";
+import { Text, View, StyleSheet, TouchableOpacity, ScrollView, Alert } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import React, { useState, useEffect } from "react";
 import { supabase } from '@/lib/supabase';
@@ -10,6 +10,9 @@ export default function MenuItemDetail() {
   const [allergens, setAllergens] = useState<AllergenType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // New state variable to track user's selected allergens
+  const [userAllergies, setUserAllergies] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchMenuItem();
@@ -28,9 +31,10 @@ export default function MenuItemDetail() {
       
       if (itemError) throw itemError;
 
+      // Modified to join with the 'allergen' table to get allergen names
       const { data: allergenData, error: allergenError } = await supabase
         .from('item_allergen')
-        .select('*')
+        .select('id, allergen (id, name)')
         .eq('item', id);
 
       if (allergenError) throw allergenError;
@@ -39,12 +43,52 @@ export default function MenuItemDetail() {
       console.log('Fetched allergens:', allergenData);
 
       setMenuItem(itemData as MenuItemType);
-      setAllergens(allergenData as AllergenType[]);
+      // Map the data to a list of allergens
+      const allergensList = allergenData.map((item: any) => ({
+        id: item.allergen.id,
+        name: item.allergen.name,
+        created_at: item.allergen.created_at,
+        allergen: item.allergen.id,
+        item: id,
+      }));
+      setAllergens(allergensList as AllergenType[]);
     } catch (error) {
       setError('Failed to fetch menu item');
       console.error('Error fetching menu item:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to handle allergen button press
+  const handleAllergenPress = (allergenName: string) => {
+    setUserAllergies((prevAllergies) => {
+      const newAllergies = new Set(prevAllergies);
+      if (newAllergies.has(allergenName)) {
+        newAllergies.delete(allergenName);
+      } else {
+        newAllergies.add(allergenName);
+      }
+      return newAllergies;
+    });
+  };
+
+  // Function to handle 'Add to Cart' button press
+  const handleAddToCart = () => {
+    const itemAllergenNames = allergens.map((a) => a.name);
+    const conflictingAllergens = itemAllergenNames.filter((a) => userAllergies.has(a));
+
+    if (conflictingAllergens.length > 0) {
+      Alert.alert(
+        'Allergy Warning',
+        `This item contains allergens you've marked: ${conflictingAllergens.join(', ')}. Do you still want to add it to your cart?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Add Anyway', onPress: () => { /* Add to cart logic */ } },
+        ]
+      );
+    } else {
+      // Add to cart logic
     }
   };
 
@@ -73,20 +117,25 @@ export default function MenuItemDetail() {
 
       {allergens.length > 0 && (
         <View style={styles.allergensContainer}>
-          <Text style={styles.allergensTitle}>Allergens:</Text>
+          <Text style={styles.allergensTitle}>Select Allergens You're Allergic To:</Text>
           {allergens.map((allergen) => (
-            <Text key={allergen.id} style={styles.allergenItem}>
-              • {allergen.allergen}
-            </Text>
+            <TouchableOpacity
+              key={allergen.id}
+              style={[
+                styles.allergenButton,
+                userAllergies.has(allergen.name) && styles.allergicButton,
+              ]}
+              onPress={() => handleAllergenPress(allergen.name)}
+            >
+              <Text style={styles.allergenButtonText}>{allergen.name}</Text>
+            </TouchableOpacity>
           ))}
         </View>
       )}
 
       <TouchableOpacity
         style={[styles.addToCartButton, !menuItem.available && styles.disabledButton]}
-        onPress={() => {
-          // Add to cart logic
-        }}
+        onPress={handleAddToCart}
         disabled={!menuItem.available}
       >
         <Text style={styles.addToCartButtonText}>
@@ -144,8 +193,16 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     marginBottom: 10,
   },
-  allergenItem: {
+  allergenButton: {
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: '#eeeeee',
+    marginVertical: 5,
+  },
+  allergicButton: {
+    backgroundColor: '#FFA07A',
+  },
+  allergenButtonText: {
     fontSize: 16,
-    marginBottom: 5,
   },
 });

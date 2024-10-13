@@ -19,6 +19,7 @@ export type MenuItemType = {
 };
 
 export type AllergenType = {
+  name: any;
   id: string;
   created_at: string;
   allergen: string;
