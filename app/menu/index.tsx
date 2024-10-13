@@ -123,7 +123,7 @@ export default function Menu() {
         <View style={styles.restaurantInfo}>
           <Text style={styles.restaurantName}>{restaurant.name}</Text>
           <Text style={styles.restaurantDescription}>{restaurant.description}</Text>
-          <Text style={styles.restaurantStatus}>
+          <Text>
             Status: {restaurant.is_open ? 'Open' : 'Closed'}
           </Text>
         </View>
