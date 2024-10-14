@@ -1,8 +1,16 @@
 import { useEffect, useState } from "react";
-import { Text, View, FlatList, TouchableOpacity, Image, StyleSheet, ActivityIndicator } from "react-native";
+import {
+  Text,
+  View,
+  FlatList,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
-import withRoleProtection from "../components/withRoleProtection";
+import withRoleProtection from "../../components/withRoleProtection";
 
 type RestaurantType = {
   id: string;
@@ -25,9 +33,7 @@ export function Index() {
   const fetchRestaurants = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('restaurant')
-        .select('*');
+      const { data, error } = await supabase.from("restaurant").select("*");
 
       if (error) throw error;
 
@@ -41,7 +47,7 @@ export function Index() {
 
       setRestaurants(sortedData);
     } catch (error) {
-      console.error('Error fetching restaurants:', error);
+      console.error("Error fetching restaurants:", error);
     } finally {
       setLoading(false);
     }
@@ -49,12 +55,9 @@ export function Index() {
 
   const renderItem = ({ item }: { item: RestaurantType }) => (
     <TouchableOpacity
-      style={[
-        styles.restaurantItem,
-        !item.is_busy && styles.disabledItem,
-      ]}
+      style={[styles.restaurantItem, !item.is_busy && styles.disabledItem]}
       onPress={() =>
-        router.push({ pathname: '/menu', params: { restaurantId: item.id } })
+        router.push({ pathname: "/menu", params: { restaurantId: item.id } })
       }
       disabled={!item.is_busy}
     >

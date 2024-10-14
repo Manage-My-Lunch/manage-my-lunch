@@ -1,5 +1,5 @@
 import { Text, View } from "react-native";
-import withRoleProtection from "../components/withRoleProtection";
+import withRoleProtection from "../../components/withRoleProtection";
 
 function Index() {
   return (
