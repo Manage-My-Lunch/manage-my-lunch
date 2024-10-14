@@ -1,20 +1,28 @@
 import { useEffect, useState } from "react";
-import { View, TextInput, Text, Pressable, StyleSheet, Alert, Image } from "react-native";
+import {
+  View,
+  TextInput,
+  Text,
+  Pressable,
+  StyleSheet,
+  Alert,
+  Image,
+} from "react-native";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "expo-router";
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { Link, useRouter } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
 import logo from "../assets/img/logo.png";
 
 /**
  * This Login page handles user authentication for the Manage My Lunch app.
- * It allows users to log in using their email and password, 
+ * It allows users to log in using their email and password,
  * and routes them to different screens based on their role
  */
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  
+
   // Function to handle user login process
   const handleLogin = async () => {
     // Attempt to sign in the user with the provided email and password using Supabase
@@ -64,7 +72,12 @@ export default function Login() {
       <Image source={logo} style={styles.logo} resizeMode="contain" />
 
       <View style={styles.inputContainer}>
-        <Ionicons name="mail-outline" size={24} color="gray" style={styles.icon} />
+        <Ionicons
+          name="mail-outline"
+          size={24}
+          color="gray"
+          style={styles.icon}
+        />
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -76,7 +89,12 @@ export default function Login() {
       </View>
 
       <View style={styles.inputContainer}>
-        <Ionicons name="lock-closed-outline" size={24} color="gray" style={styles.icon} />
+        <Ionicons
+          name="lock-closed-outline"
+          size={24}
+          color="gray"
+          style={styles.icon}
+        />
         <TextInput
           style={styles.input}
           placeholder="Password"
@@ -86,10 +104,19 @@ export default function Login() {
           autoCapitalize="none"
         />
       </View>
-
       <Pressable style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Login</Text>
       </Pressable>
+      <Link
+        style={{
+          marginTop: 16,
+          color: "#00f",
+          textDecorationLine: "underline",
+        }}
+        href="/forgot-password/"
+      >
+        Forgot Password
+      </Link>
     </View>
   );
 }
@@ -101,7 +128,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 16,
-    backgroundColor: '#F7F9FC',
+    backgroundColor: "#F7F9FC",
   },
   backButton: {
     position: "absolute",
@@ -115,15 +142,15 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: "#00BFA6",
     borderRadius: 8,
-    backgroundColor: '#E0F7FA',
+    backgroundColor: "#E0F7FA",
     marginVertical: 10,
     padding: 10,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -138,7 +165,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     padding: 12,
-    color: '#333',
+    color: "#333",
   },
   button: {
     backgroundColor: "#00BFA6",
@@ -146,7 +173,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 60,
     borderRadius: 8,
     marginTop: 20,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
