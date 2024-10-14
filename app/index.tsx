@@ -11,6 +11,9 @@ export default function Index() {
       <Pressable style={styles.button} onPress={() => router.push("/login")}>
         <Text style={styles.buttonText}>Login</Text>
       </Pressable>
+      <Pressable style={styles.button} onPress={() => router.push("/register")}>
+        <Text style={styles.buttonText}>Register</Text>
+      </Pressable>
     </View>
   );
 }
@@ -26,11 +29,12 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     paddingHorizontal: 40,
     borderRadius: 8,
+    margin: 6,
   },
   buttonText: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "bold",    
+    fontWeight: "bold",
     textAlign: "center",
   },
 });
