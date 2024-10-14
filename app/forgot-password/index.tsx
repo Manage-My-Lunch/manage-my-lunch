@@ -26,7 +26,7 @@ export default function Index() {
 
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder="name@email.com"
         value={email}
         onChangeText={(text) => setEmail(text)}
         keyboardType="email-address"
