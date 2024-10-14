@@ -1,8 +1,17 @@
-import { Text, View, StyleSheet, FlatList, TouchableOpacity, Button, TextInput, Image } from "react-native";
+import {
+  Text,
+  View,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Button,
+  TextInput,
+  Image,
+} from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
 import React from "react";
-import { supabase } from '@/lib/supabase';
+import { supabase } from "@/lib/supabase";
 
 export type MenuItemType = {
   id: string;
@@ -32,9 +41,9 @@ export default function Menu() {
   const [menuItems, setMenuItems] = useState<MenuItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [filteredItems, setFilteredItems] = useState<MenuItemType[]>([]);
-  const [activeFilter, setActiveFilter] = useState('');
+  const [activeFilter, setActiveFilter] = useState("");
   const [restaurant, setRestaurant] = useState<RestaurantType | null>(null);
 
   useEffect(() => {
@@ -52,9 +61,9 @@ export default function Menu() {
       setLoading(true);
 
       const { data: restaurantData, error: restaurantError } = await supabase
-        .from('restaurant')
-        .select('*')
-        .eq('id', restaurantId)
+        .from("restaurant")
+        .select("*")
+        .eq("id", restaurantId)
         .single();
 
       if (restaurantError) throw restaurantError;
@@ -62,17 +71,17 @@ export default function Menu() {
       setRestaurant(restaurantData);
 
       const { data: menuData, error: menuError } = await supabase
-        .from('item')
-        .select('*')
-        .eq('restaurant', restaurantId);
+        .from("item")
+        .select("*")
+        .eq("restaurant", restaurantId);
 
       if (menuError) throw menuError;
 
       setMenuItems(menuData);
       setFilteredItems(menuData);
     } catch (error) {
-      setError('Failed to fetch restaurant and menu items');
-      console.error('Error fetching data:', error);
+      setError("Failed to fetch restaurant and menu items");
+      console.error("Error fetching data:", error);
     } finally {
       setLoading(false);
     }
@@ -82,14 +91,14 @@ export default function Menu() {
     let items = [...menuItems];
 
     if (searchQuery) {
-      items = items.filter(item =>
+      items = items.filter((item) =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
-    if (activeFilter === 'price') {
+    if (activeFilter === "price") {
       items.sort((a, b) => a.price - b.price);
-    } else if (activeFilter === 'category') {
+    } else if (activeFilter === "category") {
       items.sort((a, b) => a.category.localeCompare(b.category));
     }
 
@@ -99,7 +108,12 @@ export default function Menu() {
   const renderItem = ({ item }: { item: MenuItemType }) => (
     <TouchableOpacity
       style={styles.restaurantItem}
-      onPress={() => router.push({ pathname: '/menu/detail', params: { id: item.id, restaurantId: item.restaurant } })}
+      onPress={() =>
+        router.push({
+          pathname: "/menu/detail",
+          params: { id: item.id, restaurantId: item.restaurant },
+        })
+      }
     >
       <Image source={{ uri: item.image_url }} style={styles.restaurantImage} />
       <Text style={styles.restaurantName}>{item.name}</Text>
@@ -112,7 +126,9 @@ export default function Menu() {
       {restaurant && (
         <View style={styles.restaurantInfo}>
           <Text style={styles.restaurantName}>{restaurant.name}</Text>
-          <Text style={styles.restaurantDescription}>{restaurant.description}</Text>
+          <Text style={styles.restaurantDescription}>
+            {restaurant.description}
+          </Text>
         </View>
       )}
 
@@ -124,37 +140,37 @@ export default function Menu() {
       />
 
       <View style={styles.filterButtons}>
-        <Button 
-          title="Price" 
-          onPress={() => setActiveFilter('price')} 
-          color={activeFilter === 'price' ? '#00BFA6' : undefined}
+        <Button
+          title="Price"
+          onPress={() => setActiveFilter("price")}
+          color={activeFilter === "price" ? "#00BFA6" : undefined}
         />
-        <Button 
-          title="Category" 
-          onPress={() => setActiveFilter('category')} 
-          color={activeFilter === 'category' ? '#00BFA6' : undefined}
+        <Button
+          title="Category"
+          onPress={() => setActiveFilter("category")}
+          color={activeFilter === "category" ? "#00BFA6" : undefined}
         />
         <Button
           title="Clear Filters"
           onPress={() => {
-            setSearchQuery('');
-            setActiveFilter('');
+            setSearchQuery("");
+            setActiveFilter("");
           }}
         />
       </View>
-      
+
       {loading && (
         <View style={styles.loadingContainer}>
           <Text>Loading menu items...</Text>
         </View>
       )}
-      
+
       {error && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
         </View>
       )}
-      
+
       {!loading && !error && (
         <FlatList
           data={filteredItems}
@@ -178,25 +194,25 @@ const styles = StyleSheet.create({
   },
   restaurantName: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   restaurantDescription: {
     fontSize: 16,
   },
   restaurantRating: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   searchBar: {
     height: 40,
-    borderColor: 'gray',
+    borderColor: "gray",
     borderWidth: 1,
     paddingLeft: 10,
     marginBottom: 10,
   },
   filterButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     marginBottom: 10,
   },
   list: {
@@ -223,59 +239,59 @@ const styles = StyleSheet.create({
     color: "#777",
   },
   cartButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: "#4CAF50",
     padding: 10,
     borderRadius: 5,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 10,
   },
   cartButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: "white",
+    fontWeight: "bold",
   },
   rewards: {
     marginTop: 10,
   },
   rewardsText: {
     fontSize: 14,
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
   reviewsButton: {
-    backgroundColor: '#2196F3',
+    backgroundColor: "#2196F3",
     padding: 10,
     borderRadius: 5,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 10,
   },
   reviewsButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
+    color: "white",
+    fontWeight: "bold",
   },
   recommendations: {
     marginTop: 10,
   },
   recommendationsTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 5,
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   errorText: {
-    color: 'red',
-    textAlign: 'center',
+    color: "red",
+    textAlign: "center",
   },
   disabledButton: {
-    backgroundColor: '#ccc',
+    backgroundColor: "#ccc",
   },
   restaurantItem: {
     backgroundColor: "#f0f0f0",
