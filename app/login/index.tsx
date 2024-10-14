@@ -11,7 +11,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { Link, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import logo from "../assets/img/logo.png";
+import logo from "../../assets/images/logo.png";
 
 /**
  * This Login page handles user authentication for the Manage My Lunch app.

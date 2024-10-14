@@ -1,5 +1,5 @@
 import { Text, View, Pressable, StyleSheet, Alert } from "react-native";
-import withRoleProtection from "../../components/withRoleProtection";
+import withRoleProtection from "../../../components/withRoleProtection";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 
@@ -9,14 +9,14 @@ function Index() {
   // Function to handle logout
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut(); // Sign out the user from Supabase authentication
-  
+
     if (error) {
       // If there's an error during logout, show an alert with the error message
       Alert.alert("Logout Error", error.message);
     } else {
       // If logout is successful, navigate to the login page
       router.replace("/login");
-      Alert.alert("Successfully logged out!")
+      Alert.alert("Successfully logged out!");
     }
   };
 
