@@ -2,18 +2,18 @@ import { Text, View, StyleSheet, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 
 export default function Index() {
+
+  // Initialize the router for navigation
   const router = useRouter();
 
   return (
     <View style={styles.container}>
-    <Pressable style={styles.button} onPress={() => router.push("/forgot-password")}>
-      <Text style={styles.buttonText}>Forgot Password</Text>
-    </Pressable>
-    {/* Reset Password is expected to be accessed through email sent on forgot password page */}
-    <Pressable style={styles.button} onPress={() => router.push("/reset-password")}>
-      <Text style={styles.buttonText}>Reset Password</Text>
-    </Pressable>
-  </View>
+
+      {/* Login button navigates to app/login/index.tsx when clicked */}
+      <Pressable style={styles.button} onPress={() => router.push("/login")}>
+        <Text style={styles.buttonText}>Login</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -32,7 +32,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontSize: 18,
-    fontWeight: "bold",
+    fontWeight: "bold",    
     textAlign: "center",
   },
 });
