@@ -30,7 +30,7 @@ export default function Index() {
 
       <TextInput
         style={styles.input}
-        placeholder="Password"
+        placeholder="Enter your new Password"
         value={newPassword}
         onChangeText={(text) => setNewPassword(text)}
         secureTextEntry={true}
@@ -39,7 +39,7 @@ export default function Index() {
       
       <TextInput
         style={styles.input}
-        placeholder="Confirm Password"
+        placeholder="Confirm your new Password"
         value={confirmPassword}
         onChangeText={(text) => setConfirmPassword(text)}
         secureTextEntry={true}
