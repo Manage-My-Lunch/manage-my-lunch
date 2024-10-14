@@ -2,13 +2,11 @@ import { Text, View, StyleSheet, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 
 export default function Index() {
-
   // Initialize the router for navigation
   const router = useRouter();
 
   return (
     <View style={styles.container}>
-
       {/* Login button navigates to app/login/index.tsx when clicked */}
       <Pressable style={styles.button} onPress={() => router.push("/login")}>
         <Text style={styles.buttonText}>Login</Text>
