@@ -10,9 +10,10 @@ function Index() {
         alignItems: "center",
       }}
     >
-      <Text>Edit menu/index.tsx to edit this screen.</Text>
+      <Text>Edit restaurant/index.tsx to edit this screen.</Text>
     </View>
   );
 }
 
-export default withRoleProtection(Index, ["student"]);
+// Protect the component with role-based access for restaurants
+export default withRoleProtection(Index, ["restaurant"]);
