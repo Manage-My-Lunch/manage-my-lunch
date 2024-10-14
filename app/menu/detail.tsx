@@ -3,7 +3,6 @@ import { useLocalSearchParams } from "expo-router";
 import React, { useState, useEffect } from "react";
 import { supabase } from '@/lib/supabase';
 import { MenuItemType, AllergenType } from "./index";
-
 export default function MenuItemDetail() {
   const { id, restaurantId } = useLocalSearchParams();
   const [menuItem, setMenuItem] = useState<MenuItemType | null>(null);
@@ -113,7 +112,6 @@ export default function MenuItemDetail() {
       <Text style={styles.title}>{menuItem.name}</Text>
       <Text style={styles.price}>${menuItem.price.toFixed(2)}</Text>
       <Text style={styles.description}>{menuItem.description}</Text>
-      {!menuItem.available && <Text style={styles.unavailable}>Currently Unavailable</Text>}
 
       {allergens.length > 0 && (
         <View style={styles.allergensContainer}>
@@ -134,13 +132,10 @@ export default function MenuItemDetail() {
       )}
 
       <TouchableOpacity
-        style={[styles.addToCartButton, !menuItem.available && styles.disabledButton]}
+        style={styles.addToCartButton}
         onPress={handleAddToCart}
-        disabled={!menuItem.available}
       >
-        <Text style={styles.addToCartButtonText}>
-          {menuItem.available ? 'Add to Cart' : 'Unavailable'}
-        </Text>
+        <Text style={styles.addToCartButtonText}>Add to Cart</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -176,13 +171,6 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 18,
     fontWeight: "bold",
-  },
-  unavailable: {
-    color: 'red',
-    fontStyle: 'italic',
-  },
-  disabledButton: {
-    backgroundColor: '#ccc',
   },
   allergensContainer: {
     marginTop: 20,

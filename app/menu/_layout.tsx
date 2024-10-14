@@ -14,13 +14,8 @@ export default function AppLayout() {
         },
       }}
     >
-      <Stack.Screen name="index" options={{ title: "Home" }} />
-      <Stack.Screen name="restaurants" options={{ title: "Restaurants" }} />
-      <Stack.Screen name="menu/index" options={{ title: "Menu" }} />
-      <Stack.Screen
-        name="menu/detail"
-        options={{ title: "Menu Item Details" }}
-      />
+      <Stack.Screen name="index" options={{ title: "Menu" }} />
+      <Stack.Screen name="detail" options={{ title: "Menu Item Details" }} />
     </Stack>
   );
 }

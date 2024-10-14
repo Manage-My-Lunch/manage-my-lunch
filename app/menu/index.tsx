@@ -1,10 +1,9 @@
-import { Text, View, StyleSheet, FlatList, TouchableOpacity, Button, TextInput } from "react-native";
-import { useRouter } from "expo-router";
+import { Text, View, StyleSheet, FlatList, TouchableOpacity, Button, TextInput, Image } from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
 import React from "react";
 import { supabase } from '@/lib/supabase';
 
-// Define the MenuItemType at the top of the file
 export type MenuItemType = {
   id: string;
   created_at: string;
@@ -13,17 +12,8 @@ export type MenuItemType = {
   image_url: string;
   description: string;
   price: number;
-  available: boolean;
   name: string;
   category: string;
-};
-
-export type AllergenType = {
-  name: any;
-  id: string;
-  created_at: string;
-  allergen: string;
-  item: string;
 };
 
 export type RestaurantType = {
@@ -31,11 +21,14 @@ export type RestaurantType = {
   name: string;
   description: string;
   is_open: boolean;
+  image_url: string;
+  is_busy: boolean;
 };
 
 export default function Menu() {
   const router = useRouter();
-  
+  const { restaurantId } = useLocalSearchParams();
+
   const [menuItems, setMenuItems] = useState<MenuItemType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +38,10 @@ export default function Menu() {
   const [restaurant, setRestaurant] = useState<RestaurantType | null>(null);
 
   useEffect(() => {
-    fetchRestaurantAndMenuItems();
-  }, []);
+    if (restaurantId) {
+      fetchRestaurantAndMenuItems();
+    }
+  }, [restaurantId]);
 
   useEffect(() => {
     filterItems();
@@ -55,9 +50,11 @@ export default function Menu() {
   const fetchRestaurantAndMenuItems = async () => {
     try {
       setLoading(true);
+
       const { data: restaurantData, error: restaurantError } = await supabase
         .from('restaurant')
         .select('*')
+        .eq('id', restaurantId)
         .single();
 
       if (restaurantError) throw restaurantError;
@@ -66,11 +63,10 @@ export default function Menu() {
 
       const { data: menuData, error: menuError } = await supabase
         .from('item')
-        .select('*');
+        .select('*')
+        .eq('restaurant', restaurantId);
 
       if (menuError) throw menuError;
-
-      console.log('Menu items fetched:', menuData);
 
       setMenuItems(menuData);
       setFilteredItems(menuData);
@@ -82,7 +78,6 @@ export default function Menu() {
     }
   };
 
-  // Filter items locally without making additional API calls
   const filterItems = () => {
     let items = [...menuItems];
 
@@ -103,18 +98,12 @@ export default function Menu() {
 
   const renderItem = ({ item }: { item: MenuItemType }) => (
     <TouchableOpacity
-      style={styles.item}
-      onPress={() =>
-        router.push({
-          pathname: '/menu/detail',
-          params: { id: item.id },
-        })
-      }
+      style={styles.restaurantItem}
+      onPress={() => router.push({ pathname: '/menu/detail', params: { id: item.id, restaurantId: item.restaurant } })}
     >
-      <Text style={styles.title}>{item.name}</Text>
-      <Text style={styles.price}>${item.price.toFixed(2)}</Text>
-      <Text style={styles.category}>{item.category}</Text>
-      {!item.available && <Text style={styles.unavailable}>Unavailable</Text>}
+      <Image source={{ uri: item.image_url }} style={styles.restaurantImage} />
+      <Text style={styles.restaurantName}>{item.name}</Text>
+      <Text style={styles.restaurantDescription}>{item.description}</Text>
     </TouchableOpacity>
   );
 
@@ -124,15 +113,8 @@ export default function Menu() {
         <View style={styles.restaurantInfo}>
           <Text style={styles.restaurantName}>{restaurant.name}</Text>
           <Text style={styles.restaurantDescription}>{restaurant.description}</Text>
-          <Text>
-            Status: {restaurant.is_open ? 'Open' : 'Closed'}
-          </Text>
         </View>
       )}
-
-      <View style={styles.promotions}>
-        <Text style={styles.promotionText}>20% off on all main dishes!</Text>
-      </View>
 
       <TextInput
         style={styles.searchBar}
@@ -202,15 +184,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   restaurantRating: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  promotions: {
-    backgroundColor: '#FFD700',
-    padding: 10,
-    marginBottom: 10,
-  },
-  promotionText: {
     fontSize: 16,
     fontWeight: 'bold',
   },
@@ -301,11 +274,27 @@ const styles = StyleSheet.create({
     color: 'red',
     textAlign: 'center',
   },
-  unavailable: {
-    color: 'red',
-    fontStyle: 'italic',
-  },
   disabledButton: {
     backgroundColor: '#ccc',
+  },
+  restaurantItem: {
+    backgroundColor: "#f0f0f0",
+    padding: 15,
+    marginVertical: 5,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  disabledItem: {
+    opacity: 0.5, // Makes the item appear grayed out
+  },
+  restaurantImage: {
+    width: "100%",
+    height: 150,
+    borderRadius: 8,
+  },
+  statusText: {
+    marginTop: 5,
+    color: "#ff0000",
+    fontWeight: "bold",
   },
 });
