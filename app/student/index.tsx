@@ -61,7 +61,15 @@ export function Index() {
       }
       disabled={!item.is_busy}
     >
-      <Image source={{ uri: item.image_url }} style={styles.restaurantImage} />
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: item.image_url }} style={styles.restaurantImage} />
+        {!item.is_busy && (
+          <Image 
+            source={require('../../assets/images/busy.png')} 
+            style={styles.busyOverlay}
+          />
+        )}
+      </View>
       <Text style={styles.restaurantName}>{item.name}</Text>
       <Text style={styles.restaurantDescription}>{item.description}</Text>
     </TouchableOpacity>
@@ -121,6 +129,19 @@ const styles = StyleSheet.create({
     marginTop: 5,
     color: "#ff0000",
     fontWeight: "bold",
+  },
+  imageContainer: {
+    width: '100%',
+    height: 150,
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  busyOverlay: {
+    position: 'absolute',
+    width: '70%',
+    height: '70%',
+    borderRadius: 8,
   },
 });
 
