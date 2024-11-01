@@ -3,21 +3,21 @@ import { useState, useEffect } from "react";
 import withRoleProtection from "../../../components/withRoleProtection";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
-import { Picker } from "@react-native-picker/picker";
+import { FontAwesome } from '@expo/vector-icons';
+import CustomButton from "@/components/customButton";
 
 function ProfileScreen() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [loading, setLoading] = useState<boolean>(true);
+  const [firstName, setFirstName] = useState<string>("");
+  const [lastName, setLastName] = useState<string>("");
   const [email, setEmail] = useState<string | undefined>(undefined);
   const [universities, setUniversities] = useState<{ id: string; name: string }[]>([]);
   const [campuses, setCampuses] = useState<{ id: string; name: string }[]>([]);
-  const [selectedUniversity, setSelectedUniversity] = useState(null);
-  const [selectedCampus, setSelectedCampus] = useState(null);
-  const [isEditing, setIsEditing] = useState(false); // Track edit mode
+  const [selectedUniversity, setSelectedUniversity] = useState<string | null>(null);
+  const [selectedCampus, setSelectedCampus] = useState<string | null>(null);
 
-  // Fetch user details and universities on component mount
+  // Fetch user and profile data on mount
   useEffect(() => {
     const fetchData = async () => {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -26,17 +26,16 @@ function ProfileScreen() {
         return;
       }
 
-      // Set email from the Supabase auth user object
       setEmail(user.email);
 
-      const { data, error } = await supabase
+      const { data, error: profileError } = await supabase
         .from("user")
         .select("*")
         .eq("id", user.id)
         .single();
 
-      if (error) {
-        Alert.alert("Error loading profile", error.message);
+      if (profileError) {
+        Alert.alert("Error loading profile", profileError.message);
       } else {
         setFirstName(data.first_name);
         setLastName(data.last_name);
@@ -44,10 +43,11 @@ function ProfileScreen() {
         setSelectedCampus(data.preferred_campus);
       }
 
-      // Fetch universities for dropdown
+      // Fetch universities
       const { data: uniData, error: uniError } = await supabase
         .from("university")
         .select("id, name");
+
       if (uniError) {
         Alert.alert("Error loading universities", uniError.message);
       } else {
@@ -60,7 +60,7 @@ function ProfileScreen() {
     fetchData();
   }, []);
 
-  // Fetch campuses when a university is selected
+  // Fetch campuses
   useEffect(() => {
     if (!selectedUniversity) return;
 
@@ -80,35 +80,6 @@ function ProfileScreen() {
     fetchCampuses();
   }, [selectedUniversity]);
 
-  // Handle profile update
-  const handleSaveProfile = async () => {
-    setLoading(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      Alert.alert("Error updating profile", "User is not logged in.");
-      setLoading(false);
-      return;
-    }
-
-    const { error } = await supabase
-      .from("user")
-      .update({
-        first_name: firstName,
-        last_name: lastName,
-        university: selectedUniversity,
-        preferred_campus: selectedCampus
-      })
-      .eq("id", user.id);
-
-    if (error) {
-      Alert.alert("Error updating profile", error.message);
-    } else {
-      Alert.alert("Profile Updated", "Your profile information has been saved.");
-      setIsEditing(false); // Return to non-edit mode after saving
-    }
-    setLoading(false);
-  };
-
   // Handle logout
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
@@ -119,6 +90,12 @@ function ProfileScreen() {
       Alert.alert("Successfully logged out!");
     }
   };
+
+  // Handle navigation
+  const handleRewards = () => router.push("/student/profile/rewards");
+  const handleOrderHistory = () => router.push("/student/profile/orderHistory");
+  const handleEdit = () => router.push("/student/profile/editProfile");
+  const handleNewPassword = () => router.push("/student/profile/changePassword");
 
   // Function to get the university name by ID
   const getUniversityName = (id: string) => {
@@ -138,84 +115,39 @@ function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      {isEditing ? (
-        <>
-          <TextInput
-            style={styles.input}
-            placeholder="First Name"
-            value={firstName}
-            onChangeText={setFirstName}
+        <Text style={styles.fullName}>{`${firstName} ${lastName}`}</Text>
+        <View style={styles.infoContainer}>
+          <View style={styles.infoContent}>
+            <Text style={styles.email}>{email}</Text>
+            <Text style={styles.university}>{selectedUniversity ? getUniversityName(selectedUniversity) : "Unknown University"}</Text>
+            <Text style={styles.campus}>{selectedCampus ? getCampusName(selectedCampus) : "Unknown Campus"}</Text>
+            <CustomButton
+              title="Set New Password"
+              onPress={handleNewPassword}
+              style={styles.changePasswordButton}
+              textStyle={styles.changePasswordText}
+            />
+          </View>
+
+          <Pressable style={styles.editButton} onPress={handleEdit}>
+            <FontAwesome name="pencil" size={20} color="white" />
+          </Pressable>
+        </View>
+
+        <View style={styles.buttonRow}>
+          <CustomButton
+            title="Logout"
+            onPress={handleLogout}
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Last Name"
-            value={lastName}
-            onChangeText={setLastName}
+          <CustomButton
+            title="Order History"
+            onPress={handleOrderHistory}
           />
-          <TextInput
-            style={styles.input}
-            placeholder="Email"
-            value={email}
-            editable={false}
+          <CustomButton
+            title="Rewards"
+            onPress={handleRewards}
           />
-
-          <Text>Select University</Text>
-          <Picker
-          style={{ height: 50, backgroundColor: '#fff' }}
-            selectedValue={selectedUniversity}
-            onValueChange={(value) => setSelectedUniversity(value)}
-          >
-            {universities.map((uni) => (
-              <Picker.Item key={uni.id} label={uni.name} value={uni.id} />
-            ))}
-          </Picker>
-
-          <Text>Select Campus</Text>
-          <Picker
-            selectedValue={selectedCampus}
-            onValueChange={(value) => setSelectedCampus(value)}
-          >
-            {campuses.map((campus) => (
-              <Picker.Item key={campus.id} label={campus.name} value={campus.id} />
-            ))}
-          </Picker>
-
-          <Pressable style={styles.saveButton} onPress={handleSaveProfile}>
-            <Text style={styles.buttonText}>Save Changes</Text>
-          </Pressable>
-        </>
-      ) : (
-        <>
-          <Text style={styles.fullName}>{`${firstName} ${lastName}`}</Text>
-          <Text style={styles.email}>{email}</Text>
-          <Text style={styles.university}>
-            {selectedUniversity ? getUniversityName(selectedUniversity) : "Unknown University"}
-          </Text>
-          <Text style={styles.campus}>
-            {selectedCampus ? getCampusName(selectedCampus) : "Unknown Campus"}
-          </Text>
-
-          <Pressable style={styles.button} onPress={() => setIsEditing(true)}>
-            <Text style={styles.buttonText}>Edit Profile</Text>
-          </Pressable>
-
-          <Pressable style={styles.button} onPress={handleLogout}>
-            <Text style={styles.buttonText}>Logout</Text>
-          </Pressable>
-
-          <Pressable style={styles.button}>
-            <Text style={styles.buttonText}>Set New Password</Text>
-          </Pressable>
-
-          <Pressable style={styles.button}>
-            <Text style={styles.buttonText}>Order History</Text>
-          </Pressable>
-
-          <Pressable style={styles.button}>
-            <Text style={styles.buttonText}>Rewards</Text>
-          </Pressable>
-        </>
-      )}
+        </View>
     </View>
   );
 }
@@ -235,7 +167,6 @@ const styles = StyleSheet.create({
   },
   email: {
     fontSize: 16,
-    textAlign: "center",
     marginVertical: 4,
   },
   university: {
@@ -256,26 +187,58 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
     borderRadius: 5,
   },
-  button: {
-    marginTop: 20,
-    padding: 10,
-    backgroundColor: "#00BFA6",
-    borderRadius: 5,
-  },
-  saveButton: {
-    marginTop: 20,
-    padding: 10,
-    backgroundColor: "#5faffd",
-    borderRadius: 5,
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
   loading: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+  },
+  picker: {
+    backgroundColor: "white",
+    marginTop: 20,
+    borderWidth: 1,
+    borderRadius: 4,
+    padding: 10,
+    width: "100%",
+  },
+  infoContainer: {
+    width: "100%",
+    padding: 20,
+    backgroundColor: "#ffffff",
+    borderRadius: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "flex-start",
+    position: "relative",
+    marginBottom: 20,
+  },
+  infoContent: {
+    flex: 1,
+  },
+  changePasswordButton: {
+    marginTop: 10,
+    backgroundColor: "#fff",
+    alignItems: 'flex-start',
+  },
+  changePasswordText: {
+    fontSize: 16,
+    color: "#00BFA6",
+  },
+  editButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    padding: 8,
+    backgroundColor: "#00BFA6",
+    borderRadius: 20,
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "100%",
   },
 });
 
