@@ -1,4 +1,4 @@
-import { Text, View, Pressable, StyleSheet, Alert, TextInput, ActivityIndicator } from "react-native";
+import { Text, View, Pressable, StyleSheet, Alert, ActivityIndicator } from "react-native";
 import { useState, useEffect } from "react";
 import withRoleProtection from "../../../components/withRoleProtection";
 import { supabase } from "@/lib/supabase";
@@ -68,7 +68,7 @@ function ProfileScreen() {
       const { data, error } = await supabase
         .from("campus")
         .select("id, name")
-        .eq("university_id", selectedUniversity);
+        .eq("university", selectedUniversity);
 
       if (error) {
         Alert.alert("Error loading campuses", error.message);

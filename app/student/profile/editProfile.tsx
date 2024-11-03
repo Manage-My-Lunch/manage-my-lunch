@@ -64,7 +64,7 @@ function EditProfileScreen() {
       const { data, error } = await supabase
         .from("campus")
         .select("id, name")
-        .eq("university_id", selectedUniversity);
+        .eq("university", selectedUniversity);
 
       if (error) {
         Alert.alert("Error loading campuses", error.message);
