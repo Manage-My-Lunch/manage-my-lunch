@@ -1,30 +1,30 @@
-import { Text, View, TextInput, Alert, ActivityIndicator, StyleSheet } from "react-native";
+import { Text, View, ActivityIndicator, StyleSheet } from "react-native";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
-import { Picker } from "@react-native-picker/picker";
 import CustomButton from "@/components/customButton";
+import withRoleProtection from "../../../components/withRoleProtection";
+import alert from "@/components/alert";
+import CustomTextInput from "@/components/customTextInput";
+import CustomPicker from "@/components/customPicker";
 
 function EditProfileScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState<string | undefined>(undefined);
   const [universities, setUniversities] = useState<{ id: string; name: string }[]>([]);
   const [campuses, setCampuses] = useState<{ id: string; name: string }[]>([]);
-  const [selectedUniversity, setSelectedUniversity] = useState(null);
-  const [selectedCampus, setSelectedCampus] = useState(null);
+  const [selectedUniversity, setSelectedUniversity] = useState<string | null>(null);
+  const [selectedCampus, setSelectedCampus] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       const { data: { user }, error: userError } = await supabase.auth.getUser();
       if (userError || !user) {
-        Alert.alert("Error fetching user", userError?.message || "User not found.");
+        alert("Error fetching user", userError?.message || "User not found.");
         return;
       }
-
-      setEmail(user.email);
 
       const { data, error } = await supabase
         .from("user")
@@ -33,12 +33,12 @@ function EditProfileScreen() {
         .single();
 
       if (error) {
-        Alert.alert("Error loading profile", error.message);
+        alert("Error loading profile", error.message);
       } else {
         setFirstName(data.first_name);
         setLastName(data.last_name);
         setSelectedUniversity(data.university);
-        setSelectedCampus(data.preferred_campus);
+        setSelectedCampus(data.preferred_campus || null); // Reset campus if it is not set
       }
 
       const { data: uniData, error: uniError } = await supabase
@@ -46,7 +46,7 @@ function EditProfileScreen() {
         .select("id, name");
 
       if (uniError) {
-        Alert.alert("Error loading universities", uniError.message);
+        alert("Error loading universities", uniError.message);
       } else {
         setUniversities(uniData);
       }
@@ -58,7 +58,10 @@ function EditProfileScreen() {
   }, []);
 
   useEffect(() => {
-    if (!selectedUniversity) return;
+    if (!selectedUniversity) {
+      setSelectedCampus(null); // Reset campus when university changes
+      return;
+    }
 
     const fetchCampuses = async () => {
       const { data, error } = await supabase
@@ -67,7 +70,7 @@ function EditProfileScreen() {
         .eq("university", selectedUniversity);
 
       if (error) {
-        Alert.alert("Error loading campuses", error.message);
+        alert("Error loading campuses", error.message);
       } else {
         setCampuses(data);
       }
@@ -77,10 +80,16 @@ function EditProfileScreen() {
   }, [selectedUniversity]);
 
   const handleSaveProfile = async () => {
+    // Check if a campus is selected
+    if (!selectedCampus) {
+      alert("Cannot save profile", "Please select a campus before saving your profile.");
+      return; // Exit the function early if no campus is selected
+    }
+
     setLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      Alert.alert("Error updating profile", "User is not logged in.");
+      alert("User not found!", "We could not update your profile.");
       setLoading(false);
       return;
     }
@@ -96,10 +105,10 @@ function EditProfileScreen() {
       .eq("id", user.id);
 
     if (error) {
-      Alert.alert("Error updating profile", error.message);
+      alert("Profile Not Updated", "Your profile information was unable to be saved.");
     } else {
-      Alert.alert("Profile Updated", "Your profile information has been saved.");
-      router.push("/student/profile"); // Navigate back to profile screen
+      alert("Profile Updated", "Your profile information has been saved successfully.");
+      router.push("/student/profile");
     }
     setLoading(false);
   };
@@ -110,46 +119,37 @@ function EditProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
+      {/* First Name Input field */}
+      <CustomTextInput
         placeholder="First Name"
         value={firstName}
         onChangeText={setFirstName}
       />
-      <TextInput
-        style={styles.input}
+      {/* Last Name Input field */}
+      <CustomTextInput
         placeholder="Last Name"
         value={lastName}
         onChangeText={setLastName}
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        editable={false}
-      />
 
       <Text>Select University</Text>
-      <Picker
+      <CustomPicker
         selectedValue={selectedUniversity}
-        onValueChange={(value) => setSelectedUniversity(value)}
-        style={styles.picker}
-      >
-        {universities.map((uni) => (
-          <Picker.Item key={uni.id} label={uni.name} value={uni.id} />
-        ))}
-      </Picker>
+        onValueChange={(value) => {
+          setSelectedUniversity(value);
+          setSelectedCampus(null); // Reset campus selection on university change
+        }}
+        options={universities}
+        placeholder="Choose a university"
+      />
 
       <Text>Select Campus</Text>
-      <Picker
+      <CustomPicker
         selectedValue={selectedCampus}
-        onValueChange={(value) => setSelectedCampus(value)}
-        style={styles.picker}
-      >
-        {campuses.map((campus) => (
-          <Picker.Item key={campus.id} label={campus.name} value={campus.id} />
-        ))}
-      </Picker>
+        onValueChange={setSelectedCampus}
+        options={campuses}
+        placeholder="Choose a campus"
+      />
 
       <CustomButton title="Save Changes" onPress={handleSaveProfile} />
     </View>
@@ -160,10 +160,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
+    alignItems: "center",
+    paddingTop: 50,
+    width: "100%",
+    maxWidth: 1000,
+    alignSelf: "center",
   },
   input: {
     padding: 10,
-    marginVertical: 8,
+    marginVertical: 10,
     borderWidth: 1,
     borderRadius: 5,
   },
@@ -172,10 +177,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  picker: {
-    marginTop: 20,
-    padding: 10,
-  },
 });
 
-export default EditProfileScreen;
+// Protect the component with role-based access for students
+export default withRoleProtection(EditProfileScreen, ["student"]);

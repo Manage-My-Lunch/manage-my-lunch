@@ -122,7 +122,7 @@ function ProfileScreen() {
             <Text style={styles.university}>{selectedUniversity ? getUniversityName(selectedUniversity) : "Unknown University"}</Text>
             <Text style={styles.campus}>{selectedCampus ? getCampusName(selectedCampus) : "Unknown Campus"}</Text>
             <CustomButton
-              title="Set New Password"
+              title="Change Password"
               onPress={handleNewPassword}
               style={styles.changePasswordButton}
               textStyle={styles.changePasswordText}
@@ -158,7 +158,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 16,
-    backgroundColor: "#f9f9f9",
+    width: "100%",
+    maxWidth: 600,
+    alignSelf: "center",
   },
   fullName: {
     fontSize: 20,
@@ -205,6 +207,8 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: "#ffffff",
     borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#00BFA6",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -214,6 +218,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-start",
     position: "relative",
     marginBottom: 20,
+    elevation: 3,
   },
   infoContent: {
     flex: 1,

@@ -1,19 +1,25 @@
-import { View, StyleSheet, TextInput, Alert } from "react-native";
+import { View, StyleSheet, TextInput, Pressable, Platform, Dimensions } from "react-native";
 import withRoleProtection from "@/components/withRoleProtection";
-import { useState } from "react";
+import { SetStateAction, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import CustomButton from "@/components/customButton";
 import { useRouter } from "expo-router";
+import alert from "@/components/alert";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import CustomTextInput from "@/components/customTextInput";
 
 function ChangePasswordScreen() {
   const router = useRouter();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  // Check if the device is mobile (small screen or on iOS/Android)
+  const isMobile = Platform.OS === "ios" || Platform.OS === "android" || Dimensions.get("window").width < 768;
+
   const handleNewPassword = async () => {
     // Check if the passwords match
     if (newPassword !== confirmPassword) {
-      Alert.alert("Passwords don't match.");
+      alert("Cannot save new password", "Passwords don't match.");
       return;
     }
 
@@ -25,33 +31,38 @@ function ChangePasswordScreen() {
 
       if (error) {
         // If there’s an error, show an alert
-        Alert.alert("Password Update Failed", error.message);
+        alert("Password Update Failed", error.message);
       } else {
         // If successful, notify the user and navigate back to the profile screen
-        Alert.alert("Password Updated Successfully");
+        alert("Password Updated Successfully", "Your new password has been saved.");
         router.push("/student/profile");
       }
     } catch (error) {
-      Alert.alert("Unexpected Error");
+      alert("Unexpected Error", "Cannot save password.");
     }
   }
 
   return (
     <View style={styles.container}>
-      <TextInput
-        style={styles.input}
+      {isMobile && (
+        <Pressable style={styles.backButton} onPress={() => router.push("/student/profile")}>
+          <Ionicons name="arrow-back-circle-outline" size={36} color="black" />
+        </Pressable>
+      )}
+
+      {/* New Password Input field */}
+      <CustomTextInput
         placeholder="Enter your new Password"
         value={newPassword}
-        onChangeText={(text) => setNewPassword(text)}
+        onChangeText={(text: SetStateAction<string>) => setNewPassword(text)}
         secureTextEntry={true}
         autoCapitalize="none"
       />
-      
-      <TextInput
-        style={styles.input}
+      {/* Confirm New Password Input field */}
+      <CustomTextInput
         placeholder="Confirm your new Password"
         value={confirmPassword}
-        onChangeText={(text) => setConfirmPassword(text)}
+        onChangeText={(text: SetStateAction<string>) => setConfirmPassword(text)}
         secureTextEntry={true}
         autoCapitalize="none"
       />
@@ -69,14 +80,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    width: "100%",
+    maxWidth: 1000,
+    alignSelf: "center",
   },
-  input: {
-    width: "80%",
-    padding: 12,
-    marginVertical: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 8,
+  backButton: {
+    position: "absolute",
+    top: 40,
+    left: 16,
+    zIndex: 1,
   },
 });
 
