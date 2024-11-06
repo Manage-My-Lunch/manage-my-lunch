@@ -1,4 +1,4 @@
-import { View, StyleSheet, TextInput, Pressable, Platform, Dimensions } from "react-native";
+import { View, StyleSheet, Text, Pressable, Platform, Dimensions } from "react-native";
 import withRoleProtection from "@/components/withRoleProtection";
 import { SetStateAction, useState } from "react";
 import { supabase } from "@/lib/supabase";
@@ -10,6 +10,7 @@ import CustomTextInput from "@/components/customTextInput";
 
 function ChangePasswordScreen() {
   const router = useRouter();
+  const [existingPassword, setExistingPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -24,6 +25,17 @@ function ChangePasswordScreen() {
     }
 
     try {
+      // Re-authenticate the user with the existing password
+      const { error: signInError, data: session } = await supabase.auth.signInWithPassword({
+        email: (await supabase.auth.getUser()).data.user?.email!,
+        password: existingPassword
+      });
+
+      if (signInError) {
+        alert("Password Update Failed", "Existing password is incorrect.");
+        return;
+      }
+
       // Attempt to update the password in Supabase
       const { error } = await supabase.auth.updateUser({
         password: newPassword
@@ -50,9 +62,19 @@ function ChangePasswordScreen() {
         </Pressable>
       )}
 
+      <Text style={styles.title}>Change Password</Text>
+
+      {/* Existing Password Input field */}
+      <CustomTextInput
+        placeholder="Current Password"
+        value={existingPassword}
+        onChangeText={(text: SetStateAction<string>) => setExistingPassword(text)}
+        secureTextEntry={true}
+        autoCapitalize="none"
+      />
       {/* New Password Input field */}
       <CustomTextInput
-        placeholder="Enter your new Password"
+        placeholder="New Password"
         value={newPassword}
         onChangeText={(text: SetStateAction<string>) => setNewPassword(text)}
         secureTextEntry={true}
@@ -60,7 +82,7 @@ function ChangePasswordScreen() {
       />
       {/* Confirm New Password Input field */}
       <CustomTextInput
-        placeholder="Confirm your new Password"
+        placeholder="Confirm New Password"
         value={confirmPassword}
         onChangeText={(text: SetStateAction<string>) => setConfirmPassword(text)}
         secureTextEntry={true}
@@ -68,7 +90,7 @@ function ChangePasswordScreen() {
       />
 
       <CustomButton
-        title="Save"
+        title="Update Password"
         onPress={handleNewPassword}
       />
     </View>
@@ -89,6 +111,11 @@ const styles = StyleSheet.create({
     top: 40,
     left: 16,
     zIndex: 1,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
   },
 });
 

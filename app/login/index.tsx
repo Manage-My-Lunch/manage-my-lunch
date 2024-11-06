@@ -1,17 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   View,
   TextInput,
   Text,
   Pressable,
   StyleSheet,
-  Alert,
   Image,
 } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { Link, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import logo from "../../assets/images/logo.png";
+import alert from "@/components/alert";
 
 /**
  * This Login page handles user authentication for the Manage My Lunch app.
@@ -33,7 +33,7 @@ export default function Login() {
 
     // If there's an error during login, display an alert with the error message
     if (error) {
-      Alert.alert("Login Error", error.message);
+      alert("Login Error", error.message);
       return;
     }
 
@@ -47,7 +47,7 @@ export default function Login() {
       .single();
 
     if (profileError) {
-      Alert.alert("Error", profileError.message);
+      alert("Error", profileError.message);
       return;
     }
 
@@ -58,7 +58,7 @@ export default function Login() {
     } else if (role === "restaurant") {
       router.push("/restaurant");
     } else {
-      Alert.alert("Error", "Unknown role");
+      alert("Error", "Unknown role");
     }
   };
 
