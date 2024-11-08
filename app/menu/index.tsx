@@ -118,6 +118,8 @@ export default function Menu() {
       <Image source={{ uri: item.image_url }} style={styles.restaurantImage} />
       <Text style={styles.restaurantName}>{item.name}</Text>
       <Text style={styles.restaurantDescription}>{item.description}</Text>
+      <Text style={styles.price}>${item.price.toFixed(2)}</Text>
+      <Text style={styles.category}>{item.category}</Text>
     </TouchableOpacity>
   );
 
@@ -232,11 +234,14 @@ const styles = StyleSheet.create({
   },
   price: {
     fontSize: 16,
-    color: "#555",
+    color: "#00BFA6",
+    fontWeight: "bold",
+    marginTop: 5,
   },
   category: {
     fontSize: 14,
     color: "#777",
+    marginTop: 5,
   },
   cartButton: {
     backgroundColor: "#4CAF50",
@@ -312,5 +317,15 @@ const styles = StyleSheet.create({
     marginTop: 5,
     color: "#ff0000",
     fontWeight: "bold",
+  },
+  backButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  backButtonText: {
+    marginLeft: 5,
+    color: "#00BFA6",
+    fontSize: 16,
   },
 });
