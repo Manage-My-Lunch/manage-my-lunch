@@ -12,27 +12,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
 import React from "react";
 import { supabase } from "@/lib/supabase";
-
-export type MenuItemType = {
-  id: string;
-  created_at: string;
-  updated_at: string;
-  restaurant: string | null;
-  image_url: string;
-  description: string;
-  price: number;
-  name: string;
-  category: string;
-};
-
-export type RestaurantType = {
-  id: string;
-  name: string;
-  description: string;
-  is_open: boolean;
-  image_url: string;
-  is_busy: boolean;
-};
+import { MenuItemType, RestaurantType } from "@/lib/types";
 
 export default function Menu() {
   const router = useRouter();
@@ -110,7 +90,7 @@ export default function Menu() {
       style={styles.restaurantItem}
       onPress={() =>
         router.push({
-          pathname: "/menu/detail",
+          pathname: "./detail",
           params: { id: item.id, restaurantId: item.restaurant },
         })
       }

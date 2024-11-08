@@ -1,12 +1,19 @@
-import { Text, View, StyleSheet, TouchableOpacity, ScrollView, Alert } from "react-native";
+import {
+  Text,
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+} from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import React, { useState, useEffect } from "react";
-import { supabase } from '@/lib/supabase';
-import { MenuItemType, AllergenType } from "./index";
+import { supabase } from "@/lib/supabase";
+import { MenuItemType, Allergen } from "@/lib/types";
 export default function MenuItemDetail() {
   const { id, restaurantId } = useLocalSearchParams();
   const [menuItem, setMenuItem] = useState<MenuItemType | null>(null);
-  const [allergens, setAllergens] = useState<AllergenType[]>([]);
+  const [allergens, setAllergens] = useState<Allergen[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,27 +26,27 @@ export default function MenuItemDetail() {
 
   const fetchMenuItem = async () => {
     if (!id) return;
-    
+
     try {
       setLoading(true);
       const { data: itemData, error: itemError } = await supabase
-        .from('item')
-        .select('*')
-        .eq('id', id)
+        .from("item")
+        .select("*")
+        .eq("id", id)
         .single();
-      
+
       if (itemError) throw itemError;
 
       // Modified to join with the 'allergen' table to get allergen names
       const { data: allergenData, error: allergenError } = await supabase
-        .from('item_allergen')
-        .select('id, allergen (id, name)')
-        .eq('item', id);
+        .from("item_allergen")
+        .select("id, allergen (id, name)")
+        .eq("item", id);
 
       if (allergenError) throw allergenError;
 
-      console.log('Fetched menu item:', itemData);
-      console.log('Fetched allergens:', allergenData);
+      console.log("Fetched menu item:", itemData);
+      console.log("Fetched allergens:", allergenData);
 
       setMenuItem(itemData as MenuItemType);
       // Map the data to a list of allergens
@@ -50,10 +57,10 @@ export default function MenuItemDetail() {
         allergen: item.allergen.id,
         item: id,
       }));
-      setAllergens(allergensList as AllergenType[]);
+      setAllergens(allergensList as Allergen[]);
     } catch (error) {
-      setError('Failed to fetch menu item');
-      console.error('Error fetching menu item:', error);
+      setError("Failed to fetch menu item");
+      console.error("Error fetching menu item:", error);
     } finally {
       setLoading(false);
     }
@@ -75,15 +82,24 @@ export default function MenuItemDetail() {
   // Function to handle 'Add to Cart' button press
   const handleAddToCart = () => {
     const itemAllergenNames = allergens.map((a) => a.name);
-    const conflictingAllergens = itemAllergenNames.filter((a) => userAllergies.has(a));
+    const conflictingAllergens = itemAllergenNames.filter((a) =>
+      userAllergies.has(a)
+    );
 
     if (conflictingAllergens.length > 0) {
       Alert.alert(
-        'Allergy Warning',
-        `This item contains allergens you've marked: ${conflictingAllergens.join(', ')}. Do you still want to add it to your cart?`,
+        "Allergy Warning",
+        `This item contains allergens you've marked: ${conflictingAllergens.join(
+          ", "
+        )}. Do you still want to add it to your cart?`,
         [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Add Anyway', onPress: () => { /* Add to cart logic */ } },
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Add Anyway",
+            onPress: () => {
+              /* Add to cart logic */
+            },
+          },
         ]
       );
     } else {
@@ -102,7 +118,7 @@ export default function MenuItemDetail() {
   if (error || !menuItem) {
     return (
       <View style={styles.container}>
-        <Text>{error || 'Item not found.'}</Text>
+        <Text>{error || "Item not found."}</Text>
       </View>
     );
   }
@@ -115,7 +131,9 @@ export default function MenuItemDetail() {
 
       {allergens.length > 0 && (
         <View style={styles.allergensContainer}>
-          <Text style={styles.allergensTitle}>Select Allergens You're Allergic To:</Text>
+          <Text style={styles.allergensTitle}>
+            Select Allergens You're Allergic To:
+          </Text>
           {allergens.map((allergen) => (
             <TouchableOpacity
               key={allergen.id}
@@ -184,11 +202,11 @@ const styles = StyleSheet.create({
   allergenButton: {
     padding: 10,
     borderRadius: 5,
-    backgroundColor: '#eeeeee',
+    backgroundColor: "#eeeeee",
     marginVertical: 5,
   },
   allergicButton: {
-    backgroundColor: '#FFA07A',
+    backgroundColor: "#FFA07A",
   },
   allergenButtonText: {
     fontSize: 16,

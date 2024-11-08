@@ -10,16 +10,8 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
-import withRoleProtection from "../../components/withRoleProtection";
-
-type RestaurantType = {
-  id: string;
-  name: string;
-  description: string;
-  is_open: boolean;
-  image_url: string;
-  is_busy: boolean;
-};
+import withRoleProtection from "@/components/withRoleProtection";
+import { RestaurantType } from "@/lib/types";
 
 export function Index() {
   const router = useRouter();
@@ -57,15 +49,21 @@ export function Index() {
     <TouchableOpacity
       style={[styles.restaurantItem, !item.is_busy && styles.disabledItem]}
       onPress={() =>
-        router.push({ pathname: "/menu", params: { restaurantId: item.id } })
+        router.push({
+          pathname: "/student/menu/restaurant",
+          params: { restaurantId: item.id },
+        })
       }
       disabled={!item.is_busy}
     >
       <View style={styles.imageContainer}>
-        <Image source={{ uri: item.image_url }} style={styles.restaurantImage} />
+        <Image
+          source={{ uri: item.image_url }}
+          style={styles.restaurantImage}
+        />
         {!item.is_busy && (
-          <Image 
-            source={require('../../assets/images/busy.png')} 
+          <Image
+            source={require("@/assets/images/busy.png")}
             style={styles.busyOverlay}
           />
         )}
@@ -131,16 +129,16 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   imageContainer: {
-    width: '100%',
+    width: "100%",
     height: 150,
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
   },
   busyOverlay: {
-    position: 'absolute',
-    width: '70%',
-    height: '70%',
+    position: "absolute",
+    width: "70%",
+    height: "70%",
     borderRadius: 8,
   },
 });
