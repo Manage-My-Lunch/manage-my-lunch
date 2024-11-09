@@ -1,13 +1,6 @@
-import { Stack } from "expo-router";
+import { Slot } from "expo-router";
+import { KeyboardAvoidingView } from "react-native";
 
 export default function RootLayout() {
-  return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Stack.Screen name="index" />
-    </Stack>
-  );
+  return <Slot></Slot>;
 }
