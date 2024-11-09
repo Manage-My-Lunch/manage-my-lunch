@@ -17,25 +17,33 @@ export default function AppLayout() {
           fontWeight: "bold",
         },
         headerLeft: () => (
-          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backButton}
+          >
             <Ionicons name="arrow-back" size={24} color="#fff" />
             <Text style={styles.backButtonText}>Back</Text>
           </TouchableOpacity>
         ),
       }}
     >
-      <Stack.Screen 
-        name="index" 
-        options={{ 
+      <Stack.Screen
+        name="index"
+        options={{
           title: "Menu",
           headerLeft: () => (
-            <TouchableOpacity onPress={() => router.push("/student")} style={styles.backButton}>
+            <TouchableOpacity
+              onPress={() => router.push("/student")}
+              style={styles.backButton}
+            >
               <Ionicons name="arrow-back" size={24} color="#fff" />
               <Text style={styles.backButtonText}>Back</Text>
             </TouchableOpacity>
           ),
-        }} 
+        }}
       />
+      <Stack.Screen name="restaurant" options={{ title: "Restaurant" }} />
+
       <Stack.Screen name="detail" options={{ title: "Menu Item Details" }} />
     </Stack>
   );
