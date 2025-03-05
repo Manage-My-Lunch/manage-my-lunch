@@ -6,11 +6,13 @@ import {
   Pressable,
   StyleSheet,
   Image,
+  KeyboardAvoidingView,
+  Keyboard,
 } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { Link, useRouter } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import logo from "../../assets/images/logo.png";
+import logo from "@/assets/images/logo.png";
 import alert from "@/components/alert";
 
 /**
@@ -64,7 +66,11 @@ export default function Login() {
 
   // Form to enter email and password to login
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior="padding"
+      onPointerDown={Keyboard.dismiss}
+    >
       <Pressable style={styles.backButton} onPress={() => router.push("/")}>
         <Ionicons name="arrow-back-circle-outline" size={36} color="black" />
       </Pressable>
@@ -117,7 +123,7 @@ export default function Login() {
       >
         Forgot Password
       </Link>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
