@@ -19,6 +19,8 @@ export default function MenuItemDetail() {
 
   // New state variable to track user's selected allergens
   const [userAllergies, setUserAllergies] = useState<Set<string>>(new Set());
+  // state variable to store the quantity of the item they wish to add to cart
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     fetchMenuItem();
@@ -107,6 +109,12 @@ export default function MenuItemDetail() {
     }
   };
 
+  // Functions to handle changing the quantity of the item
+  const increaseQuantity = () => setQuantity((prev) => prev + 1);
+  const decreaseQuantity = () => {
+    if (quantity > 1) setQuantity((prev) => prev - 1);
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -148,6 +156,18 @@ export default function MenuItemDetail() {
           ))}
         </View>
       )}
+
+      <View style={styles.quantityContainer}>
+        <TouchableOpacity style={styles.quantityButton} onPress={decreaseQuantity}>
+          <Text style={styles.quantityButtonText}>-</Text>
+        </TouchableOpacity>
+        
+        <Text style={styles.quantityText}>{quantity}</Text>
+        
+        <TouchableOpacity style={styles.quantityButton} onPress={increaseQuantity}>
+          <Text style={styles.quantityButtonText}>+</Text>
+        </TouchableOpacity>
+      </View>
 
       <TouchableOpacity
         style={styles.addToCartButton}
@@ -211,4 +231,25 @@ const styles = StyleSheet.create({
   allergenButtonText: {
     fontSize: 16,
   },
+  quantityContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 10,
+    marginBottom: 20,
+  },
+  quantityButton: {
+    backgroundColor: "#ddd",
+    padding: 10,
+    borderRadius: 5,
+    marginHorizontal: 5,
+  },
+  quantityButtonText: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  quantityText: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginHorizontal: 10,
+  },  
 });
