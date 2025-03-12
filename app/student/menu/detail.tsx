@@ -82,30 +82,121 @@ export default function MenuItemDetail() {
   };
 
   // Function to handle 'Add to Cart' button press
-  const handleAddToCart = () => {
-    const itemAllergenNames = allergens.map((a) => a.name);
-    const conflictingAllergens = itemAllergenNames.filter((a) =>
-      userAllergies.has(a)
-    );
+  const handleAddToCart = async () => {
+    // Ensure menu item has loaded 
+    if (!menuItem) {
+      Alert.alert("Error", "Item details are not available.");
+      return;
+    }
 
-    if (conflictingAllergens.length > 0) {
-      Alert.alert(
-        "Allergy Warning",
-        `This item contains allergens you've marked: ${conflictingAllergens.join(
-          ", "
-        )}. Do you still want to add it to your cart?`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Add Anyway",
-            onPress: () => {
-              /* Add to cart logic */
-            },
-          },
-        ]
+    // Existing code to check for allergens
+    try {
+      const itemAllergenNames = allergens.map((a) => a.name);
+      const conflictingAllergens = itemAllergenNames.filter((a) =>
+      userAllergies.has(a)
       );
-    } else {
-      // Add to cart logic
+  
+      const proceedWithAdding = async () => {
+        // Get the logged-in user's ID
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError || !userData?.user) throw new Error("User not authenticated");
+  
+        const userId = userData.user.id;
+  
+        // Check for an existing unpaid order
+        const { data: existingOrder, error: orderError } = await supabase
+          .from("order")
+          .select("*")
+          .eq("user", userId)
+          .is("paid_at", null)
+          .single();
+  
+        if (orderError && orderError.code !== "PGRST116") throw orderError;
+  
+        let orderId;
+  
+        if (existingOrder) {
+          orderId = existingOrder.id;
+        } else {
+          // If no existing order, create a new order (cart)
+          const { data: newOrder, error: newOrderError } = await supabase
+            .from("order")
+            .insert([{ user: userId, total_cost: 0, total_items: 0 }])
+            .select()
+            .single();
+  
+          if (newOrderError) throw newOrderError;
+  
+          orderId = newOrder.id;
+        }
+  
+        // Check if item selected is already in cart
+        const { data: existingCartItem, error: cartItemError } = await supabase
+          .from("order_item")
+          .select("*")
+          .eq('"order"', orderId) //need double quotations so doesn't get confused with sql ORDER (sorting)
+          .eq("item", id)
+          .single();
+  
+        if (cartItemError && cartItemError.code !== "PGRST116") throw cartItemError;
+  
+        if (existingCartItem) {
+          // Update quantity and total price
+          const newQuantity = existingCartItem.quantity + quantity;
+          const newTotal = newQuantity * menuItem.price;
+  
+          const { error: updateError } = await supabase
+            .from("order_item")
+            .update({ quantity: newQuantity, line_total: newTotal })
+            .eq("id", existingCartItem.id);
+  
+          if (updateError) throw updateError;
+        } else {
+          // Insert a new item
+          const { error: insertError } = await supabase.from("order_item").insert([
+            {
+              order: orderId,
+              item: id,
+              quantity,
+              line_total: menuItem.price * quantity,
+            },
+          ]);
+  
+          if (insertError) throw insertError;
+        }
+  
+        // Update order totals
+        const updatedTotalCost = (existingOrder?.total_cost || 0) + menuItem.price * quantity;
+        const updatedTotalItems = (existingOrder?.total_items || 0) + quantity;
+  
+        const { error: updateOrderError } = await supabase
+          .from("order")
+          .update({ total_cost: updatedTotalCost, total_items: updatedTotalItems })
+          .eq("id", orderId);
+  
+        if (updateOrderError) throw updateOrderError;
+  
+        Alert.alert("Success", "Item added to cart!");
+      };
+  
+      if (conflictingAllergens.length > 0) {
+        Alert.alert(
+          "Allergy Warning",
+          `This item contains allergens you've marked: ${conflictingAllergens.join(", ")}. Do you still want to add it to your cart?`,
+          [
+            { text: "Cancel", style: "cancel" },
+            {
+              text: "Add Anyway",
+              onPress: proceedWithAdding,
+            },
+          ]
+        );
+      } else {
+        await proceedWithAdding();
+      }
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+      Alert.alert("Error", "Failed to add item to cart.");
     }
   };
 
