@@ -175,6 +175,18 @@ export default function MenuItemDetail() {
           .eq("id", orderId);
   
         if (updateOrderError) throw updateOrderError;
+
+        // Update the 'updated_at' column in the 'order' table
+        const { error: updateError } = await supabase
+          .from('order')
+          .update({ updated_at: new Date() }) // Sets to current timestamp
+          .eq('id', orderId);
+
+        if (updateError) {
+          console.error('Error updating order timestamp:', updateError);
+        } else {
+          console.log('Order timestamp updated successfully');
+        }
   
         Alert.alert("Success", "Item added to cart!");
       };
