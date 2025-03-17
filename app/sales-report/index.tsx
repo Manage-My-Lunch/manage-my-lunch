@@ -1,18 +1,54 @@
 import { Text, View, StyleSheet, Pressable } from "react-native";
 import { useRouter } from "expo-router";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+
+interface SalesReport {
+  total_orders: number;
+  total_cost: number;
+}
 
 export default function Index() {
   const router = useRouter();
+  const [salesReport, setSalesReport] = useState<SalesReport | null>(null);
 
+  const fetchSalesReport = async (givenDate: string) => {
+    try {
+      const { data, error } = await supabase
+        .rpc("fetch_sales_report", { given_date: givenDate });
+
+      if (error) {
+        console.error("Error fetching sales report:", error);
+        setSalesReport(null);
+      } else {
+        setSalesReport(data[0]);
+      }
+    } catch (error) {
+      console.error("Unexpected error:", error);
+      setSalesReport(null);
+    }
+  };
+
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0]; // Format as YYYY-MM-DD
+    fetchSalesReport(today);
+  }, []);
 
   return (
     <View style={styles.container}>
-      {/* Login button navigates to app/login/index.tsx when clicked */}
       <Pressable style={styles.button} onPress={() => router.push("/")}>
         <Text style={styles.buttonText}>Home</Text>
       </Pressable>
-      <Text>More incoming</Text>
+      
+      {salesReport ? (
+        <>
+          <Text>Total Orders: {salesReport.total_orders}</Text>
+          <Text>Total Cost: ${salesReport.total_cost.toFixed(2)}</Text>
+        </>
+      ) : (
+        <Text>No data available</Text>
+      )}
+
     </View>
   );
 }
