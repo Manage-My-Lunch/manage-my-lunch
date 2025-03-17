@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabase";
 
 interface SalesReport {
   total_orders: number;
-  total_cost: number;
+  total_cost: number | null;
 }
 
 export default function Index() {
@@ -30,7 +30,7 @@ export default function Index() {
   };
 
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0]; // Format as YYYY-MM-DD
+    const today = new Date().toISOString().split("T")[0];
     fetchSalesReport(today);
   }, []);
 
@@ -43,10 +43,11 @@ export default function Index() {
       {salesReport ? (
         <>
           <Text>Total Orders: {salesReport.total_orders}</Text>
-          <Text>Total Cost: ${salesReport.total_cost.toFixed(2)}</Text>
+          <Text>Total Cost: {salesReport.total_cost !== null ? `$${salesReport.total_cost.toFixed(2)}` : "Not Available"}</Text>
+
         </>
       ) : (
-        <Text>No data available</Text>
+        <Text>No data available for given date</Text>
       )}
 
     </View>
