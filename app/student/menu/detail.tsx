@@ -115,10 +115,44 @@ export default function MenuItemDetail() {
   
         let orderId;
   
+        // If an unpaid order exists, check if it's expired (hasn't been updated in 24hours+)
         if (existingOrder) {
-          orderId = existingOrder.id;
+          // Convert updated_at to Date
+          const updatedAt = existingOrder.updated_at ? new Date(existingOrder.updated_at) : null;
+          const now = new Date();
+      
+          if (updatedAt && now.getTime() - updatedAt.getTime() > 24 * 60 * 60 * 1000) {
+            // Delete associated order items first
+            const { error: deleteOrderItemsError } = await supabase
+            .from("order_item")
+            .delete()
+            .eq('"order"', existingOrder.id); 
+
+            if (deleteOrderItemsError) throw deleteOrderItemsError;
+
+            // If last update was more than 24 hours ago, delete the order
+            const { error: deleteOrderError } = await supabase
+              .from("order")
+              .delete()
+              .eq("id", existingOrder.id);
+      
+            if (deleteOrderError) throw deleteOrderError;
+      
+            // Create a new order
+            const { data: newOrder, error: newOrderError } = await supabase
+              .from("order")
+              .insert([{ user: userId, total_cost: 0, total_items: 0 }])
+              .select()
+              .single();
+      
+            if (newOrderError) throw newOrderError;
+      
+            orderId = newOrder.id;
+          } else {
+            orderId = existingOrder.id;
+          }
         } else {
-          // If no existing order, create a new order (cart)
+          // If no existing order, create a new one
           const { data: newOrder, error: newOrderError } = await supabase
             .from("order")
             .insert([{ user: userId, total_cost: 0, total_items: 0 }])
@@ -171,22 +205,12 @@ export default function MenuItemDetail() {
   
         const { error: updateOrderError } = await supabase
           .from("order")
-          .update({ total_cost: updatedTotalCost, total_items: updatedTotalItems })
+          .update({ total_cost: updatedTotalCost, total_items: updatedTotalItems, updated_at: new Date() })
           .eq("id", orderId);
   
         if (updateOrderError) throw updateOrderError;
-
-        // Update the 'updated_at' column in the 'order' table
-        const { error: updateError } = await supabase
-          .from('order')
-          .update({ updated_at: new Date() }) // Sets to current timestamp
-          .eq('id', orderId);
-
-        if (updateError) {
-          console.error('Error updating order timestamp:', updateError);
-        } else {
-          console.log('Order timestamp updated successfully');
-        }
+  
+        console.log("Order timestamp updated successfully");
   
         Alert.alert("Success", "Item added to cart!");
       };
