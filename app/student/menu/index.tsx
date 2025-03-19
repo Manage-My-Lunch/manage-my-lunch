@@ -7,6 +7,7 @@ import {
   Image,
   StyleSheet,
   ActivityIndicator,
+  Modal,
   Pressable,
 } from "react-native";
 import { useRouter } from "expo-router";
@@ -14,17 +15,19 @@ import { supabase } from "@/lib/supabase";
 import withRoleProtection from "@/components/withRoleProtection";
 import { RestaurantType } from "@/lib/types";
 
+type SortType = 'default' | 'popularity';
+
 export function Index() {
   const router = useRouter();
   const [restaurants, setRestaurants] = useState<RestaurantType[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortType, setSortType] = useState<'default' | 'popularity'>('default');
+  const [sortType, setSortType] = useState<SortType>('default');
+  const [showSortModal, setShowSortModal] = useState(false);
 
   useEffect(() => {
     fetchRestaurants();
   }, [sortType]);
 
-  // Format popularity: 1000+ for >=1000, 100+ for >=100, 10+ for >=10
   const formatPopularity = (value: number): string => {
     if (value >= 1000) return '1000+';
     if (value >= 100) return `${Math.floor(value / 100) * 100}+`;
@@ -36,17 +39,13 @@ export function Index() {
     try {
       setLoading(true);
       const { data, error } = await supabase.from("restaurant").select("*");
-
       if (error) throw error;
 
       const sortedData = data.sort((a, b) => {
-        // Sort by monthly sales or opening status
         if (sortType === 'popularity') {
           return (b.monthly_sale || 0) - (a.monthly_sale || 0);
         } else {
-          if (a.is_busy === b.is_busy) {
-            return 0;
-          }
+          if (a.is_busy === b.is_busy) return 0;
           return a.is_busy ? -1 : 1;
         }
       });
@@ -59,7 +58,7 @@ export function Index() {
     }
   };
 
-  const renderItem = ({ item }: { item: RestaurantType }) => (
+  const renderItem = ({ item }: { item: RestaurantType }): React.ReactElement => (
     <TouchableOpacity
       style={[styles.restaurantItem, !item.is_busy && styles.disabledItem]}
       onPress={() =>
@@ -71,10 +70,7 @@ export function Index() {
       disabled={!item.is_busy}
     >
       <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: item.image_url }}
-          style={styles.restaurantImage}
-        />
+        <Image source={{ uri: item.image_url }} style={styles.restaurantImage} />
         {!item.is_busy && (
           <Image
             source={require("@/assets/images/busy.png")}
@@ -86,9 +82,9 @@ export function Index() {
       <View style={styles.infoContainer}>
         <Text style={styles.restaurantDescription}>{item.description}</Text>
         <View style={styles.popularityContainer}>
-          <Image 
-            source={require("@/assets/images/star.png")} 
-            style={[styles.starIcon, sortType === 'popularity' && { opacity: 1 }]} 
+          <Image
+            source={require("@/assets/images/star.png")}
+            style={[styles.starIcon, sortType === 'popularity' && { opacity: 1 }]}
           />
           <Text style={[styles.popularityText, sortType === 'popularity' && { opacity: 1 }]}>
             {formatPopularity(item.monthly_sale || 0)}
@@ -100,31 +96,51 @@ export function Index() {
 
   return (
     <View style={styles.container}>
+      {/* Filter Section */}
       <View style={styles.filterSection}>
-        <Text style={styles.filterTitle}>Sort Restaurants By:</Text>
-        <View style={styles.sortingContainer}>
-          <Pressable
-            style={[styles.sortButton, sortType === 'default' && styles.activeSortButton]}
-            onPress={() => setSortType('default')}
-          >
-            <Text style={[styles.sortButtonText, sortType === 'default' && styles.activeSortButtonText]}>
-              Opening Status
-            </Text>
-          </Pressable>
-          <Pressable
-            style={[styles.sortButton, sortType === 'popularity' && styles.activeSortButton]}
-            onPress={() => setSortType('popularity')}
-          >
-            <Image 
-              source={require("@/assets/images/star.png")} 
-              style={[styles.starIcon, sortType === 'popularity' && { opacity: 1 }]} 
-            />
-            <Text style={[styles.sortButtonText, sortType === 'popularity' && styles.activeSortButtonText]}>
-              Most Popular
-            </Text>
-          </Pressable>
-        </View>
+        <Pressable style={styles.sortButton} onPress={() => setShowSortModal(true)}>
+          <Text style={styles.sortButtonText}>Sort Restaurants By:</Text>
+          <Text style={styles.selectedSort}>
+            {sortType === 'default' ? 'Opening Status' : 'Most Popular'}
+          </Text>
+        </Pressable>
       </View>
+
+      {/* Modal display for sorting options */}
+      <Modal
+        visible={showSortModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSortModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowSortModal(false)}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity
+              style={[styles.sortOption, sortType === 'default' && styles.selectedOption]}
+              onPress={() => {
+                setSortType('default');
+                setShowSortModal(false);
+              }}
+            >
+              <Text style={[styles.sortOptionText, sortType === 'default' && styles.selectedOptionText]}>
+                Opening Status
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.sortOption, sortType === 'popularity' && styles.selectedOption]}
+              onPress={() => {
+                setSortType('popularity');
+                setShowSortModal(false);
+              }}
+            >
+              <Text style={[styles.sortOptionText, sortType === 'popularity' && styles.selectedOptionText]}>
+                Most Popular
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
+
       {loading ? (
         <ActivityIndicator size="large" color="#00BFA6" />
       ) : (
@@ -140,13 +156,67 @@ export function Index() {
 }
 
 const styles = StyleSheet.create({
-
   container: {
     flex: 1,
     backgroundColor: "#fff",
   },
   list: {
     padding: 10,
+  },
+  filterSection: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  sortButton: {
+    backgroundColor: "#f5f5f5",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  sortButtonText: {
+    fontSize: 14,
+    color: "#666",
+  },
+  selectedSort: {
+    fontSize: 16,
+    color: "#333",
+    fontWeight: "bold",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 16,
+    width: "80%",
+    maxWidth: 300,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  sortOption: {
+    paddingVertical: 12,
+  },
+  selectedOption: {
+    backgroundColor: "#f0f8ff",
+  },
+  sortOptionText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  selectedOptionText: {
+    color: "#007AFF",
+    fontWeight: "600",
   },
   restaurantItem: {
     backgroundColor: "#f0f0f0",
@@ -187,8 +257,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 5,
   },
-
-  // Popularity display styles
   infoContainer: {
     width: "100%",
     alignItems: "center",
@@ -196,8 +264,8 @@ const styles = StyleSheet.create({
   popularityContainer: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
     marginTop: 5,
+    gap: 4,
   },
   starIcon: {
     width: 16,
@@ -211,45 +279,6 @@ const styles = StyleSheet.create({
     color: "#FFB800",
     opacity: 0.5,
   },
-
-  // Sorting section styles
-  filterSection: {
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  filterTitle: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginBottom: 8,
-    color: "#333",
-  },
-  sortingContainer: {
-    flexDirection: "row",
-    gap: 10,
-  },
-  sortButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: "#f5f5f5",
-    marginRight: 8,
-    minWidth: 120,
-    justifyContent: "center",
-  },
-  activeSortButton: {
-    backgroundColor: "#00BFA6",
-  },
-  sortButtonText: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-  },
-  activeSortButtonText: {
-    color: "#fff",
-  },
 });
-// Protect the component with role-based access for students
+
 export default withRoleProtection(Index, ["student"]);
