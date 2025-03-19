@@ -39,6 +39,7 @@ export function Index() {
     try {
       setLoading(true);
       const { data, error } = await supabase.from("restaurant").select("*");
+      
       if (error) throw error;
 
       const sortedData = data.sort((a, b) => {
@@ -70,7 +71,10 @@ export function Index() {
       disabled={!item.is_busy}
     >
       <View style={styles.imageContainer}>
-        <Image source={{ uri: item.image_url }} style={styles.restaurantImage} />
+        <Image 
+         source={{ uri: item.image_url }}
+         style={styles.restaurantImage} 
+        />
         {!item.is_busy && (
           <Image
             source={require("@/assets/images/busy.png")}
@@ -281,4 +285,5 @@ const styles = StyleSheet.create({
   },
 });
 
+// Protect the component with role-based access for students
 export default withRoleProtection(Index, ["student"]);
