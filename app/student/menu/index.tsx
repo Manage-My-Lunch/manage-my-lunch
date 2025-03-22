@@ -29,9 +29,8 @@ export function Index() {
   }, [sortType]);
 
   const formatPopularity = (value: number): string => {
-    if (value >= 1000) return '1000+';
+    if (value >= 1000) return `${Math.floor(value / 1000) * 1000}+`;
     if (value >= 100) return `${Math.floor(value / 100) * 100}+`;
-    if (value >= 10) return `${Math.floor(value / 10) * 10}+`;
     return value.toString();
   };
 
