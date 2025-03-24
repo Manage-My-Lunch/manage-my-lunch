@@ -1,4 +1,6 @@
-export default theme = {
+import { StyleSheet } from "react-native"
+
+const theme = {
     colours: {
         primary: "#00BFA6",
         secondary: "#5faffd",
@@ -6,3 +8,5 @@ export default theme = {
         accent: "#a79dff",
     }
 }
+
+export default theme
