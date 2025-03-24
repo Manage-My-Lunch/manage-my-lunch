@@ -1,4 +1,4 @@
-export type MenuItemType = {
+export interface MenuItemType {
     id: string;
     created_at: string;
     updated_at: string;
@@ -10,7 +10,7 @@ export type MenuItemType = {
     category: string;
 };
 
-export type RestaurantType = {
+export interface RestaurantType {
     id: string;
     name: string;
     description: string;
@@ -20,7 +20,18 @@ export type RestaurantType = {
     monthly_sale: number;
 };
 
-export type Allergen = {
+export interface RestaurantCategory {
+    id: string,
+    restaurant: string,
+    category: string
+}
+
+export interface Category {
+    id: string,
+    name: string
+}
+
+export interface Allergen {
     id: string;
     name: string;
 }
