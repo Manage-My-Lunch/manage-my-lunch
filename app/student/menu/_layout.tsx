@@ -61,6 +61,7 @@ export default function AppLayout() {
                     ),
                 }}
             />
+            <Stack.Screen name="restaurant" options={{ title: "Restaurant" }} />
             <Stack.Screen
                 name="detail"
                 options={{ title: "Menu Item Details" }}
