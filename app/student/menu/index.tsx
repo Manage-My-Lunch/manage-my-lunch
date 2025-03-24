@@ -63,7 +63,7 @@ export function Index() {
                     return (b.monthly_sale || 0) - (a.monthly_sale || 0);
                 } else {
                     if (a.is_busy === b.is_busy) return 0;
-                    return a.is_busy ? -1 : 1;
+                    return !a.is_busy ? -1 : 1;
                 }
             });
 
