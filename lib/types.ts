@@ -17,6 +17,7 @@ export type RestaurantType = {
     is_open: boolean;
     image_url: string;
     is_busy: boolean;
+    monthly_sale: number;
 };
 
 export type Allergen = {
