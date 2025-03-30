@@ -8,6 +8,7 @@ import {
   Image,
   KeyboardAvoidingView,
   Keyboard,
+  Platform,
 } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { Link, useRouter } from "expo-router";
@@ -58,7 +59,11 @@ export default function Login() {
     if (role === "student") {
       router.push("/student");
     } else if (role === "restaurant") {
-      router.push("/restaurant");
+      if (Platform.OS === "web") {
+        router.push("/restaurant"); 
+      } else {
+        alert("Error", "Restaurant dashboard is only available on the web.");
+      }
     } else {
       alert("Error", "Unknown role");
     }
