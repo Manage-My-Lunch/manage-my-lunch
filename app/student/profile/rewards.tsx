@@ -135,8 +135,9 @@ function Index() {
         <Text style={styles.cardTitle}>Available Vouchers</Text>
         <Text style={styles.voucherCount}>{profile?.voucher_count || 0}</Text>
         <Text style={styles.infoText}>
-          Use your vouchers during checkout to get $15 off
-        </Text>
+    {'\n'}Save $15 per voucher at checkout{'\n'}
+    <Text style={{ color: '#4a90e2', fontWeight: 'bold' }}>Stack them for more discounts!</Text>
+  </Text>
       </View>
       
       {/* Redemption Modal */}
