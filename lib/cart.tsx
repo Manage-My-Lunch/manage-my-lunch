@@ -429,6 +429,10 @@ const CartContext = createContext<
           removeAllItems: () => Promise<void>;
           totalItems: number;
           total: number;
+          vouchersUsed: number;
+          setVouchersUsed: (count: number) => void;
+          discountAmount: number;
+          finalTotal: number;
       }
     | undefined
 >(undefined);
@@ -445,6 +449,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     >([]);
     const [totalItems, setTotalItems] = useState(0);
     const [total, setTotal] = useState(0);
+    const [vouchersUsed, setVouchersUsed] = useState(0);
+    const [discountAmount, setDiscountAmount] = useState(0);
+    const [finalTotal, setFinalTotal] = useState(0);
 
     useEffect(() => {
         const initializeCart = async () => {
@@ -454,6 +461,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 setItems(newCart.items);
                 setTotalItems(newCart.totalItems);
                 setTotal(newCart.total);
+                setFinalTotal(newCart.total);
             } catch (error) {
                 console.error("Error adding to cart:", error);
                 Alert.alert("Error", "Failed to add item to cart.");
@@ -462,6 +470,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
         initializeCart();
     }, []);
+    
+    // Update discount amount and final total when vouchers used changes
+    useEffect(() => {
+        const discount = vouchersUsed * 15; // Each voucher is worth $15
+        setDiscountAmount(discount);
+        setFinalTotal(Math.max(0, total - discount));
+    }, [vouchersUsed, total]);
 
     if (cart === null || cart === undefined) {
         return (
@@ -514,6 +529,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 removeAllItems,
                 total,
                 totalItems,
+                vouchersUsed,
+                setVouchersUsed,
+                discountAmount,
+                finalTotal,
             }}
         >
             {children}
