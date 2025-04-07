@@ -105,7 +105,6 @@ function Index() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>My Rewards</Text>
       
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Order Points</Text>
@@ -188,12 +187,7 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#f5f5f5',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
+
   card: {
     backgroundColor: 'white',
     borderRadius: 8,
