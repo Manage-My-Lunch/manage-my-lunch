@@ -4,13 +4,39 @@ import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import withRoleProtection from "../../components/withRoleProtection";
 
+// Define the types for the order data
+interface OrderItem {
+  order: string; // Order ID
+  item: {
+    id: string;
+    restaurant: string;
+  } | null;
+}
+
+interface PickupWindow {
+  id: string;
+  open: string;
+  close: string;
+}
+
+interface Order {
+  id: string;
+  pickup_window: PickupWindow;
+  total_cost: number;
+  total_items: number;
+  paid_at: string | null;
+  accepted_at: string | null;
+  ready_at: string | null;
+}
+
 function RestaurantDashboard() {
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const fetchRestaurantName = async () => {
+    const fetchRestaurantNameAndOrders = async () => {
       setLoading(true);
 
       // Get the current logged in user
@@ -58,10 +84,25 @@ function RestaurantDashboard() {
       }
 
       setRestaurantName(restaurantData.name);
+
+      // Fetch order items linked to the restaurant
+      const { data: orderItemsData, error: orderItemsError } = await supabase
+        .from("order_item")
+        .select("order, item: item (id, restaurant)")
+
+      if (orderItemsError) {
+        console.error("Error fetching order items:", orderItemsError);
+        setLoading(false);
+        return;
+      }
+
+      console.log("orderItemsData:", orderItemsData);
+
+
       setLoading(false);
     };
 
-    fetchRestaurantName();
+    fetchRestaurantNameAndOrders();
   }, []);
 
   if (loading) {
