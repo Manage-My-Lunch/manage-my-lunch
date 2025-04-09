@@ -1,39 +1,12 @@
 import { useEffect, useState } from "react";
-import { Text, View, ActivityIndicator } from "react-native";
-import { useRouter } from "expo-router";
+import { Text, View, ActivityIndicator, FlatList } from "react-native";
 import { supabase } from "@/lib/supabase";
 import withRoleProtection from "../../components/withRoleProtection";
 
-// Define the types for the order data
-interface OrderItem {
-  order: string; // Order ID
-  item: {
-    id: string;
-    restaurant: string;
-  } | null;
-}
-
-interface PickupWindow {
-  id: string;
-  open: string;
-  close: string;
-}
-
-interface Order {
-  id: string;
-  pickup_window: PickupWindow;
-  total_cost: number;
-  total_items: number;
-  paid_at: string | null;
-  accepted_at: string | null;
-  ready_at: string | null;
-}
-
 function RestaurantDashboard() {
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [displayOrders, setDisplayOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const fetchRestaurantNameAndOrders = async () => {
@@ -88,7 +61,28 @@ function RestaurantDashboard() {
       // Fetch order items linked to the restaurant
       const { data: orderItemsData, error: orderItemsError } = await supabase
         .from("order_item")
-        .select("order, item: item (id, restaurant)")
+        .select(`
+          *,
+          item (
+            id,
+            name,
+            price,
+            restaurant
+          ),
+          order (
+            id,
+            total_cost,
+            total_items,
+            paid_at,
+            accepted_at,
+            ready_at,
+            pickup_window (
+              id,
+              open,
+              close
+            )
+          )
+        `);
 
       if (orderItemsError) {
         console.error("Error fetching order items:", orderItemsError);
@@ -98,7 +92,32 @@ function RestaurantDashboard() {
 
       console.log("orderItemsData:", orderItemsData);
 
+      const filteredOrderItems = orderItemsData.filter(
+        (entry) => entry.item?.restaurant === restaurantId
+      );
 
+      console.log("Filtered Order Items:", filteredOrderItems);
+      
+      const displayOrders = filteredOrderItems.map((entry) => {
+        const quantity = entry?.quantity ?? 1;
+        const price = entry.item?.price ?? 0;
+        return {
+          itemName: entry.item?.name,
+          itemPrice: price,
+          itemQuantity: quantity,
+          totalItemCost: price * quantity,
+          orderId: entry.order?.id,
+          totalItems: entry.order?.total_items,
+          totalCost: entry.order?.total_cost,
+          paidAt: entry.order?.paid_at,
+          acceptedAt: entry.order?.accepted_at,
+          readyAt: entry.order?.ready_at,
+          pickupOpen: entry.order?.pickup_window?.open,
+          pickupClose: entry.order?.pickup_window?.close,
+        };
+      });         
+      
+      setDisplayOrders(displayOrders);
       setLoading(false);
     };
 
@@ -114,10 +133,39 @@ function RestaurantDashboard() {
   }
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-      <Text>Welcome to {restaurantName}!</Text>
+    <View style={{ flex: 1, padding: 16 }}>
+      <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
+        Welcome to {restaurantName}!
+      </Text>
+  
+      {displayOrders.length === 0 ? (
+        <Text>No orders found.</Text>
+      ) : (
+        <FlatList
+          data={displayOrders}
+          keyExtractor={(item, index) => `${item.orderId}-${index}`}
+          ListHeaderComponent={() => (
+            <View style={{ flexDirection: "row", paddingVertical: 8, borderBottomWidth: 1, borderColor: "#ccc" }}>
+              <Text style={{ flex: 1, fontWeight: "bold" }}>Item</Text>
+              <Text style={{ flex: 1, fontWeight: "bold" }}>Qty</Text>
+              <Text style={{ flex: 1, fontWeight: "bold" }}>Price</Text>
+              <Text style={{ flex: 1, fontWeight: "bold" }}>Pickup</Text>
+              <Text style={{ flex: 1, fontWeight: "bold" }}>Total</Text>
+            </View>
+          )}
+          renderItem={({ item }) => (
+            <View style={{ flexDirection: "row", paddingVertical: 8, borderBottomWidth: 1, borderColor: "#eee" }}>
+              <Text style={{ flex: 1 }}>{item.itemName}</Text>
+              <Text style={{ flex: 1 }}>{item.itemQuantity}</Text>
+              <Text style={{ flex: 1 }}>${item.itemPrice?.toFixed(2)}</Text>
+              <Text style={{ flex: 1 }}>{item.pickupOpen} - {item.pickupClose}</Text>
+              <Text style={{ flex: 1 }}>${item.totalItemCost?.toFixed(2)}</Text>
+            </View>
+          )}
+        />
+      )}
     </View>
-  );
+  );  
 }
 
 // Protect the component with role-based access for restaurants
