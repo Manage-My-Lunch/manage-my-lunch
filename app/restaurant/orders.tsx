@@ -4,6 +4,14 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import withRoleProtection from "../../components/withRoleProtection";
 import CustomButton from "@/components/customButton";
+import { format, isToday, parseISO } from "date-fns";
+
+type OrderItem = {
+  itemName: string;
+  itemQuantity: number;
+  itemPrice: number;
+  totalItemCost: number;
+};
 
 function RestaurantOrders() {
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
@@ -44,7 +52,7 @@ function RestaurantOrders() {
   
       const restaurantId = restaurantUserData.restaurant_id;
   
-      // 🟢 Fetch restaurant name using restaurantId
+      // Fetch restaurant name using restaurantId
       const { data: restaurantData, error: restaurantError } = await supabase
         .from("restaurant")
         .select("name")
@@ -88,31 +96,53 @@ function RestaurantOrders() {
         setLoading(false);
         return;
       }
+
+      const groupedOrders: Record<string, any> = {};
   
       const filteredOrderItems = orderItemsData.filter(
-        (entry) => entry.item?.restaurant === restaurantId
-      ) || [];
-  
-      const orders = filteredOrderItems.map((entry) => {
-        const quantity = entry?.quantity ?? 1;
-        const price = entry.item?.price ?? 0;
-        return {
+        (entry) => {
+          const isFromThisRestaurant = entry.item?.restaurant === restaurantId;
+          const pickupOpen = entry.order?.pickup_window?.open;
+          const isPickupToday = pickupOpen && isToday(parseISO(pickupOpen));
+          return isFromThisRestaurant && isPickupToday;
+        }
+      );
+
+      filteredOrderItems.forEach((entry) => {
+        const orderId = entry.order?.id;
+        if (!orderId) return;
+      
+        if (!groupedOrders[orderId]) {
+          groupedOrders[orderId] = {
+            orderMeta: {
+              orderId,
+              totalItems: entry.order?.total_items,
+              totalCost: entry.order?.total_cost,
+              paidAt: entry.order?.paid_at,
+              acceptedAt: entry.order?.accepted_at,
+              readyAt: entry.order?.ready_at,
+              pickupOpen: entry.order?.pickup_window?.open,
+              pickupClose: entry.order?.pickup_window?.close,
+            },
+            items: [],
+          };
+        }
+      
+        groupedOrders[orderId].items.push({
           itemName: entry.item?.name,
-          itemPrice: price,
-          itemQuantity: quantity,
-          totalItemCost: price * quantity,
-          orderId: entry.order?.id,
-          totalItems: entry.order?.total_items,
-          totalCost: entry.order?.total_cost,
-          paidAt: entry.order?.paid_at,
-          acceptedAt: entry.order?.accepted_at,
-          readyAt: entry.order?.ready_at,
-          pickupOpen: entry.order?.pickup_window?.open,
-          pickupClose: entry.order?.pickup_window?.close,
-        };
+          itemPrice: entry.item?.price,
+          itemQuantity: entry?.quantity ?? 1,
+          totalItemCost: (entry.item?.price ?? 0) * (entry?.quantity ?? 1),
+        });
       });
-  
-      setDisplayOrders(orders);
+      
+      const sortedGroupedOrders = Object.values(groupedOrders).sort((a, b) => {
+        const timeA = parseISO(a.orderMeta.pickupOpen);
+        const timeB = parseISO(b.orderMeta.pickupOpen);
+        return timeA.getTime() - timeB.getTime();
+      });
+      
+      setDisplayOrders(sortedGroupedOrders);
       setLoading(false);
     };
   
@@ -143,7 +173,7 @@ function RestaurantOrders() {
             title="Return to Dashboard"
             onPress={() => router.push("/restaurant")}
             style={{
-                marginTop: 0,        // remove the default top margin
+                marginTop: 0,
                 paddingVertical: 8,
                 paddingHorizontal: 16,
                 borderRadius: 8,
@@ -157,29 +187,39 @@ function RestaurantOrders() {
 
       <View style={{ padding: 16 }}>
         {displayOrders.length === 0 ? (
-          <Text>No orders found.</Text>
+          <Text>No orders for today.</Text>
         ) : (
           <FlatList
             data={displayOrders}
-            keyExtractor={(item, index) => `${item.orderId}-${index}`}
-            ListHeaderComponent={() => (
-              <View style={{ flexDirection: "row", paddingVertical: 8, borderBottomWidth: 1, borderColor: "#ccc" }}>
-                <Text style={{ flex: 1, fontWeight: "bold" }}>Item</Text>
-                <Text style={{ flex: 1, fontWeight: "bold" }}>Qty</Text>
-                <Text style={{ flex: 1, fontWeight: "bold" }}>Price</Text>
-                <Text style={{ flex: 1, fontWeight: "bold" }}>Pickup</Text>
-                <Text style={{ flex: 1, fontWeight: "bold" }}>Total</Text>
-              </View>
-            )}
-            renderItem={({ item }) => (
-              <View style={{ flexDirection: "row", paddingVertical: 8, borderBottomWidth: 1, borderColor: "#eee" }}>
-                <Text style={{ flex: 1 }}>{item.itemName}</Text>
-                <Text style={{ flex: 1 }}>{item.itemQuantity}</Text>
-                <Text style={{ flex: 1 }}>${item.itemPrice?.toFixed(2)}</Text>
-                <Text style={{ flex: 1 }}>{item.pickupOpen} - {item.pickupClose}</Text>
-                <Text style={{ flex: 1 }}>${item.totalItemCost?.toFixed(2)}</Text>
-              </View>
-            )}
+            keyExtractor={(item, index) => `group-${item.orderMeta.orderId}-${index}`}
+            renderItem={({ item, index }) => {
+              const isEven = index % 2 === 0;
+              const bgColor = isEven ? "#F9F9F9" : "#E6F7F5";
+
+              return (
+                <View style={{ marginBottom: 16, backgroundColor: bgColor, borderRadius: 8, padding: 8 }}>
+                  <View style={{ flexDirection: "row", paddingVertical: 6, borderBottomWidth: 1, borderColor: "#ccc" }}>
+                    <Text style={{ flex: 1, fontWeight: "bold" }}>Item</Text>
+                    <Text style={{ flex: 1, fontWeight: "bold" }}>Quantity</Text>
+                    <Text style={{ flex: 1, fontWeight: "bold" }}>Price</Text>
+                    <Text style={{ flex: 1, fontWeight: "bold" }}>Total</Text>
+                  </View>
+                  <Text style={{ fontWeight: "bold", marginBottom: 4 }}>
+                    Order ID: {item.orderMeta.orderId} | Pickup:{" "}
+                    {format(parseISO(item.orderMeta.pickupOpen), "h:mmaaa")} -{" "}
+                    {format(parseISO(item.orderMeta.pickupClose), "h:mmaaa")}
+                  </Text>
+                  {item.items.map((orderItem: OrderItem, idx: number)  => (
+                    <View key={idx} style={{ flexDirection: "row", paddingVertical: 6 }}>
+                      <Text style={{ flex: 1 }}>{orderItem.itemName}</Text>
+                      <Text style={{ flex: 1 }}>{orderItem.itemQuantity}</Text>
+                      <Text style={{ flex: 1 }}>${orderItem.itemPrice?.toFixed(2)}</Text>
+                      <Text style={{ flex: 1 }}>${orderItem.totalItemCost?.toFixed(2)}</Text>
+                    </View>
+                  ))}
+                </View>
+              );
+            }}
           />
         )}
       </View>
