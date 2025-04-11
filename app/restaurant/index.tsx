@@ -1,128 +1,72 @@
 import { useEffect, useState } from "react";
-import { Text, View, ActivityIndicator, FlatList } from "react-native";
+import { Text, View, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
+import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import withRoleProtection from "../../components/withRoleProtection";
+import CustomButton from "@/components/customButton";
 
 function RestaurantDashboard() {
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
-  const [displayOrders, setDisplayOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchRestaurantNameAndOrders = async () => {
-      setLoading(true);
-
-      // Get the current logged in user
+    // Get the current logged in user
+    const fetchRestaurantName = async () => {
       const {
         data: { session },
-        error: sessionError,
+        error,
       } = await supabase.auth.getSession();
 
-      if (sessionError || !session?.user) {
-        console.error("Error getting session:", sessionError);
+      if (error || !session?.user) {
+        console.error("Error getting session:", error);
         setLoading(false);
         return;
       }
 
-      const userId = session.user.id;
-      console.log("User ID:", userId);
-
       // Get the restaurant_id from restaurant_users table
-      const { data: restaurantUserData, error: restaurantUserError } = await supabase
+      const { data: restaurantUser, error: restaurantUserError } = await supabase
         .from("restaurant_users")
         .select("restaurant_id")
-        .eq("user_id", userId)
+        .eq("user_id", session.user.id)
         .single();
 
-      if (restaurantUserError || !restaurantUserData) {
+      if (restaurantUserError || !restaurantUser) {
         console.error("Error fetching restaurant ID:", restaurantUserError);
         setLoading(false);
         return;
       }
-
-      const restaurantId = restaurantUserData.restaurant_id;
-      console.log("Restaurant ID:", restaurantId);
-
+      
       // Fetch the restaurant name from restaurant table
-      const { data: restaurantData, error: restaurantError } = await supabase
+      const { data: restaurant, error: restaurantError } = await supabase
         .from("restaurant")
         .select("name")
-        .eq("id", restaurantId)
+        .eq("id", restaurantUser.restaurant_id)
         .single();
 
-      if (restaurantError || !restaurantData) {
+      if (restaurantError || !restaurant) {
         console.error("Error fetching restaurant name:", restaurantError);
         setLoading(false);
         return;
       }
 
-      setRestaurantName(restaurantData.name);
-
-      // Fetch order items linked to the restaurant
-      const { data: orderItemsData, error: orderItemsError } = await supabase
-        .from("order_item")
-        .select(`
-          *,
-          item (
-            id,
-            name,
-            price,
-            restaurant
-          ),
-          order (
-            id,
-            total_cost,
-            total_items,
-            paid_at,
-            accepted_at,
-            ready_at,
-            pickup_window (
-              id,
-              open,
-              close
-            )
-          )
-        `);
-
-      if (orderItemsError) {
-        console.error("Error fetching order items:", orderItemsError);
-        setLoading(false);
-        return;
-      }
-
-      console.log("orderItemsData:", orderItemsData);
-
-      const filteredOrderItems = orderItemsData.filter(
-        (entry) => entry.item?.restaurant === restaurantId
-      );
-
-      console.log("Filtered Order Items:", filteredOrderItems);
-      
-      const displayOrders = filteredOrderItems.map((entry) => {
-        const quantity = entry?.quantity ?? 1;
-        const price = entry.item?.price ?? 0;
-        return {
-          itemName: entry.item?.name,
-          itemPrice: price,
-          itemQuantity: quantity,
-          totalItemCost: price * quantity,
-          orderId: entry.order?.id,
-          totalItems: entry.order?.total_items,
-          totalCost: entry.order?.total_cost,
-          paidAt: entry.order?.paid_at,
-          acceptedAt: entry.order?.accepted_at,
-          readyAt: entry.order?.ready_at,
-          pickupOpen: entry.order?.pickup_window?.open,
-          pickupClose: entry.order?.pickup_window?.close,
-        };
-      });         
-      
-      setDisplayOrders(displayOrders);
+      setRestaurantName(restaurant.name);
       setLoading(false);
     };
 
-    fetchRestaurantNameAndOrders();
+    fetchRestaurantName();
   }, []);
+
+  // Handle logout
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      Alert.alert("Logout Error", error.message);
+    } else {
+      router.replace("/login");
+      Alert.alert("Successfully logged out!");
+    }
+  };
 
   if (loading) {
     return (
@@ -133,39 +77,21 @@ function RestaurantDashboard() {
   }
 
   return (
-    <View style={{ flex: 1, padding: 16 }}>
-      <Text style={{ fontSize: 20, fontWeight: "bold", marginBottom: 16 }}>
+    <View style={{ flex: 1, padding: 16, justifyContent: "center", alignItems: "center" }}>
+      <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 32 }}>
         Welcome to {restaurantName}!
       </Text>
-  
-      {displayOrders.length === 0 ? (
-        <Text>No orders found.</Text>
-      ) : (
-        <FlatList
-          data={displayOrders}
-          keyExtractor={(item, index) => `${item.orderId}-${index}`}
-          ListHeaderComponent={() => (
-            <View style={{ flexDirection: "row", paddingVertical: 8, borderBottomWidth: 1, borderColor: "#ccc" }}>
-              <Text style={{ flex: 1, fontWeight: "bold" }}>Item</Text>
-              <Text style={{ flex: 1, fontWeight: "bold" }}>Qty</Text>
-              <Text style={{ flex: 1, fontWeight: "bold" }}>Price</Text>
-              <Text style={{ flex: 1, fontWeight: "bold" }}>Pickup</Text>
-              <Text style={{ flex: 1, fontWeight: "bold" }}>Total</Text>
-            </View>
-          )}
-          renderItem={({ item }) => (
-            <View style={{ flexDirection: "row", paddingVertical: 8, borderBottomWidth: 1, borderColor: "#eee" }}>
-              <Text style={{ flex: 1 }}>{item.itemName}</Text>
-              <Text style={{ flex: 1 }}>{item.itemQuantity}</Text>
-              <Text style={{ flex: 1 }}>${item.itemPrice?.toFixed(2)}</Text>
-              <Text style={{ flex: 1 }}>{item.pickupOpen} - {item.pickupClose}</Text>
-              <Text style={{ flex: 1 }}>${item.totalItemCost?.toFixed(2)}</Text>
-            </View>
-          )}
-        />
-      )}
+
+      <CustomButton
+        title="View Today's Orders"
+        onPress={() => router.push("/restaurant/orders")}
+      />
+      <CustomButton
+        title="Logout"
+        onPress={handleLogout}
+      />
     </View>
-  );  
+  );
 }
 
 // Protect the component with role-based access for restaurants
