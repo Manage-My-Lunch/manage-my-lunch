@@ -6,6 +6,7 @@ interface CustomButtonProps {
   onPress: () => void;
   style?: ViewStyle;
   textStyle?: TextStyle;
+  disabled?: boolean;
 }
 
 const CustomButton: React.FC<CustomButtonProps> = ({ title, onPress, style, textStyle }) => (

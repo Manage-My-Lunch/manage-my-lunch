@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
-import { Text, View, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
+import { Text, View, ActivityIndicator, Switch, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import withRoleProtection from "../../components/withRoleProtection";
 import CustomButton from "@/components/customButton";
+import BusyToggle from "@/components/busyToggle";
 
 function RestaurantDashboard() {
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
+  const [restaurantId, setRestaurantId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isBusy, setIsBusy] = useState<boolean>(false);
+  const [toggling, setToggling] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -40,7 +44,7 @@ function RestaurantDashboard() {
       // Fetch the restaurant name from restaurant table
       const { data: restaurant, error: restaurantError } = await supabase
         .from("restaurant")
-        .select("name")
+        .select("name, is_busy")
         .eq("id", restaurantUser.restaurant_id)
         .single();
 
@@ -50,7 +54,9 @@ function RestaurantDashboard() {
         return;
       }
 
+      setRestaurantId(restaurantUser.restaurant_id);
       setRestaurantName(restaurant.name);
+      setIsBusy(restaurant.is_busy);
       setLoading(false);
     };
 
@@ -68,6 +74,25 @@ function RestaurantDashboard() {
     }
   };
 
+  // Handle switching between open and closed
+  const handleToggleBusy = async () => {
+    if (!restaurantId) return;
+
+    setToggling(true);
+    const { error } = await supabase
+      .from("restaurant")
+      .update({ is_busy: !isBusy })
+      .eq("id", restaurantId);
+
+    if (error) {
+      Alert.alert("Error", "Failed to update restaurant status.");
+      console.error("Toggle error:", error);
+    } else {
+      setIsBusy((prev) => !prev);
+    }
+    setToggling(false);
+  };
+
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -77,19 +102,33 @@ function RestaurantDashboard() {
   }
 
   return (
-    <View style={{ flex: 1, padding: 16, justifyContent: "center", alignItems: "center" }}>
-      <Text style={{ fontSize: 24, fontWeight: "bold", marginBottom: 32 }}>
-        Welcome to {restaurantName}!
-      </Text>
-
-      <CustomButton
-        title="View Today's Orders"
-        onPress={() => router.push("/restaurant/orders")}
-      />
-      <CustomButton
-        title="Logout"
-        onPress={handleLogout}
-      />
+    <View style={{ flex: 1 }}>
+            <View style={{
+        padding: 20,
+        backgroundColor: "#00BFA6",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center"
+      }}>
+        <Text style={{ fontSize: 22, fontWeight: "bold", color: "#fff" }}>
+          Welcome to {restaurantName}!
+        </Text>
+        <BusyToggle
+          isBusy={!!isBusy}
+          onToggle={handleToggleBusy}
+          disabled={toggling}
+        />
+      </View>
+      <View style={{  padding: 16, justifyContent: "center", alignItems: "center" }}>
+        <CustomButton
+          title="View Today's Orders"
+          onPress={() => router.push("/restaurant/orders")}
+        />
+        <CustomButton
+          title="Logout"
+          onPress={handleLogout}
+        />
+      </View>
     </View>
   );
 }
