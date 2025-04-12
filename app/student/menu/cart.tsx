@@ -15,14 +15,29 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function Cart() {
-    const { items, addItem, removeItem, total, totalItems, removeAllItems,
-        vouchersUsed, setVouchersUsed, discountAmount, finalTotal } = useCart();
-        
+    const {
+        items,
+        addItem,
+        removeItem,
+        total,
+        totalItems,
+        removeAllItems,
+        vouchersUsed,
+        setVouchersUsed,
+        discountAmount,
+        finalTotal,
+    } = useCart();
+
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [voucherModalVisible, setVoucherModalVisible] = useState(false);
     const [maxVouchers, setMaxVouchers] = useState(0);
     const [tempVouchersUsed, setTempVouchersUsed] = useState(0);
+
+    const priceFormat = new Intl.NumberFormat("en-NZ", {
+        style: "currency",
+        currency: "NZD",
+    });
 
     const handleAddItem = async (item: MenuItemType) => {
         try {
@@ -50,20 +65,23 @@ export default function Cart() {
             Alert.alert("Failed to update item quantity: " + error);
         }
     };
-    
+
     // Fetch user profile to get available vouchers
     useEffect(() => {
         const fetchUserProfile = async () => {
             try {
                 // Get the current user from Supabase auth
-                const { data: { user }, error: userError } = await supabase.auth.getUser();
-                
+                const {
+                    data: { user },
+                    error: userError,
+                } = await supabase.auth.getUser();
+
                 if (userError || !user) {
                     console.error("Error fetching user:", userError);
                     setLoading(false);
                     return;
                 }
-                
+
                 // Get the user's profile from the user table
                 const { data, error } = await supabase
                     .from("user")
@@ -86,19 +104,19 @@ export default function Cart() {
 
         fetchUserProfile();
     }, []);
-    
+
     const handleOpenVoucherModal = () => {
         // Initialize temporary voucher count to the current used vouchers
         setTempVouchersUsed(vouchersUsed);
         setVoucherModalVisible(true);
     };
-    
+
     const handleApplyVouchers = () => {
         // Apply temporary voucher count to the actual state
         setVouchersUsed(tempVouchersUsed);
         setVoucherModalVisible(false);
     };
-    
+
     const handleCancelVouchers = () => {
         // Ignore this adjustment and close the modal
         setVoucherModalVisible(false);
@@ -244,8 +262,10 @@ export default function Cart() {
                                                         textAlign: "right",
                                                     }}
                                                 >
-                                                    $
-                                                    {item.price * item.quantity}
+                                                    {priceFormat.format(
+                                                        item.price *
+                                                            item.quantity
+                                                    )}
                                                 </Text>
                                             </View>
                                         </View>
@@ -258,38 +278,48 @@ export default function Cart() {
                         <Heading size={4}>Total items:</Heading> {totalItems}
                     </Text>
                     <Text>
-                        <Heading size={4}>Total:</Heading> ${total}
+                        <Heading size={4}>Total:</Heading>{" "}
+                        {priceFormat.format(total)}
                     </Text>
-                    
+
                     {userProfile && userProfile.voucher_count > 0 && (
                         <View style={styles.voucherSection}>
                             <Text style={styles.voucherInfo}>
-                                You have {userProfile.voucher_count} voucher(s) available
+                                You have {userProfile.voucher_count} voucher(s)
+                                available
                             </Text>
-                            <TouchableOpacity 
+                            <TouchableOpacity
                                 style={styles.voucherButton}
                                 onPress={handleOpenVoucherModal}
                             >
                                 <Text style={styles.voucherButtonText}>
-                                    {vouchersUsed > 0 ? `${vouchersUsed} Voucher(s) Applied` : "Use Vouchers"}
+                                    {vouchersUsed > 0
+                                        ? `${vouchersUsed} Voucher(s) Applied`
+                                        : "Use Vouchers"}
                                 </Text>
                             </TouchableOpacity>
-                            
+
                             {vouchersUsed > 0 && (
                                 <View style={styles.discountInfo}>
-                                    <Text style={styles.discountText}>Discount: -${discountAmount}</Text>
-                                    <Text style={styles.finalTotalText}>Final Total: ${finalTotal}</Text>
+                                    <Text style={styles.discountText}>
+                                        Discount:{" "}
+                                        {priceFormat.format(-discountAmount)}
+                                    </Text>
+                                    <Text style={styles.finalTotalText}>
+                                        Final Total:{" "}
+                                        {priceFormat.format(finalTotal)}
+                                    </Text>
                                 </View>
                             )}
                         </View>
                     )}
-                    
+
                     <TouchableOpacity style={styles.completeOrderButton}>
                         <Text style={styles.completeOrderButtonText}>
                             Complete Order
                         </Text>
                     </TouchableOpacity>
-                    
+
                     {/* Voucher Selection Modal */}
                     <Modal
                         animationType="slide"
@@ -299,33 +329,66 @@ export default function Cart() {
                     >
                         <View style={styles.modalContainer}>
                             <View style={styles.modalContent}>
-                                <Text style={styles.modalTitle}>Use Vouchers</Text>
-                                
-                                <Text style={styles.modalText}>
-                                    You have {userProfile?.voucher_count || 0} voucher(s) available.
-                                    Each voucher gives you $15 off your order.
+                                <Text style={styles.modalTitle}>
+                                    Use Vouchers
                                 </Text>
-                                
+
+                                <Text style={styles.modalText}>
+                                    You have {userProfile?.voucher_count || 0}{" "}
+                                    voucher(s) available. Each voucher gives you
+                                    $15 off your order.
+                                </Text>
+
                                 <View style={styles.voucherSelector}>
-                                    <Button 
-                                        title="-" 
-                                        onPress={() => setTempVouchersUsed(Math.max(0, tempVouchersUsed - 1))}
+                                    <Button
+                                        title="-"
+                                        onPress={() =>
+                                            setTempVouchersUsed(
+                                                Math.max(
+                                                    0,
+                                                    tempVouchersUsed - 1
+                                                )
+                                            )
+                                        }
                                         disabled={tempVouchersUsed <= 0}
                                     />
-                                    <Text style={styles.voucherNumber}>{tempVouchersUsed}</Text>
-                                    <Button 
-                                        title="+" 
-                                        onPress={() => setTempVouchersUsed(Math.min(maxVouchers, tempVouchersUsed + 1))}
-                                        disabled={tempVouchersUsed >= maxVouchers || tempVouchersUsed * 15 >= total}
+                                    <Text style={styles.voucherNumber}>
+                                        {tempVouchersUsed}
+                                    </Text>
+                                    <Button
+                                        title="+"
+                                        onPress={() =>
+                                            setTempVouchersUsed(
+                                                Math.min(
+                                                    maxVouchers,
+                                                    tempVouchersUsed + 1
+                                                )
+                                            )
+                                        }
+                                        disabled={
+                                            tempVouchersUsed >= maxVouchers ||
+                                            tempVouchersUsed * 15 >= total
+                                        }
                                     />
                                 </View>
-                                
-                                <Text style={styles.costText}>Discount: ${tempVouchersUsed * 15}</Text>
-                                <Text style={styles.costText}>New Total: ${Math.max(0, total - (tempVouchersUsed * 15))}</Text>
-                                
+
+                                <Text style={styles.costText}>
+                                    Discount: ${tempVouchersUsed * 15}
+                                </Text>
+                                <Text style={styles.costText}>
+                                    New Total: $
+                                    {Math.max(0, total - tempVouchersUsed * 15)}
+                                </Text>
+
                                 <View style={styles.modalButtons}>
-                                    <Button title="Cancel" onPress={handleCancelVouchers} />
-                                    <Button title="Apply" onPress={handleApplyVouchers} />
+                                    <Button
+                                        title="Cancel"
+                                        onPress={handleCancelVouchers}
+                                    />
+                                    <Button
+                                        title="Apply"
+                                        onPress={handleApplyVouchers}
+                                    />
                                 </View>
                             </View>
                         </View>
