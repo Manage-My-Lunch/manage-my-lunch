@@ -6,23 +6,13 @@ import { supabase } from "@/lib/supabase";
 //could be moved to a .ts file
 type Order = {
   id: string;
-  created_at: string;
-  updated_at: string;
-  user: string | null;
-  paid_at: string | null;
-  accepted_at: string | null;
-  ready_at: string | null;
-  driver_collected_at: string | null;
+  collection_point_name: string;
+  pickup_open: string;
+  pickup_close: string;
   delivered_at: string | null;
   collected_at: string | null;
-  completed_at: string | null;
-  cancelled_at: string | null;
-  total_cost: number;
   total_items: number;
-  pickup_window: string | null;
   comments: string | null;
-  points_redeemed: number;
-  points_earned: number;
 };
 
 export default function Index() {
@@ -31,13 +21,15 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchOrders();
+    const today = new Date().toISOString().split("T")[0];
+    fetchOrders(today);
   }, []);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (givenDate: string) => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from("order").select("*");
+      //adjust given_date argument when applying more sorting with more data!!!
+      const { data, error } = await supabase.rpc('fetch_orders', { given_date: givenDate });
       
       if (error) throw error;
       
@@ -55,26 +47,46 @@ export default function Index() {
 
   const renderHeader = () => (
     <View style={[styles.row, styles.headerRow]}>
-      <Text style={[styles.headerText]}>Order ID</Text>
-      <Text style={[styles.headerText]}>Pickup Window</Text>
-      <Text style={[styles.headerText]}>Delivered at</Text>
-      <Text style={[styles.headerText]}>Collected at</Text>
-      <Text style={[styles.headerText]}>Comments</Text>
+      <Text style={[styles.headerTextWide]}>Order ID</Text>
+      <Text style={[styles.headerTextWide]}>Collection Point</Text>
+      <Text style={[styles.headerTextWide]}>Pickup Window</Text>
+      <Text style={[styles.headerText]}>Delivered?</Text>
+      <Text style={[styles.headerText]}>Collected?</Text>
+      <Text style={[styles.headerText]}>Total Items</Text>
+      <Text style={[styles.headerTextWide]}>Comments</Text>
     </View>
   );
 
   const renderItem = ({ item }: { item: Order }) => (
     <View style={styles.item}>
       <View style={styles.row}>
-        <Text style={styles.itemText}>{item.id}</Text>
-        <Text style={styles.itemText}>{item.pickup_window}</Text>
-        <Text style={styles.itemText}>
-          {item.delivered_at ? new Date(item.delivered_at).toLocaleString() : "N/A"}
+        <Text style={styles.itemTextWide}>{item.id}</Text>
+        <Text style={styles.itemTextWide}>{item.collection_point_name}</Text>
+        <Text style={styles.itemTextWide}>
+          {item.pickup_open ? new Intl.DateTimeFormat('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: true
+          }).format(new Date(item.pickup_open)) : "N/A"}
+          &nbsp;&nbsp;-&nbsp;&nbsp;
+           {item.pickup_close ? new Intl.DateTimeFormat('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: 'numeric',
+            hour12: true
+          }).format(new Date(item.pickup_close)) : "N/A"}
         </Text>
         <Text style={styles.itemText}>
-          {item.collected_at ? new Date(item.collected_at).toLocaleString() : "N/A"}
+          {item.delivered_at ? "✔" : "✖"}
         </Text>
-        <Text style={styles.itemText}>{item.comments}</Text>
+        <Text style={styles.itemText}>
+          {item.collected_at ? "✔" : "✖"}
+        </Text>
+        <Text style={styles.itemText}>{item.total_items}</Text>
+        <Text style={styles.itemTextWide}>{item.comments ? item.comments : <i>None</i>}</Text>
       </View>
     </View>
   );
@@ -107,7 +119,6 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
     width: "100%",
   },
-
   homeButton: {
     alignSelf: "center",
   },
@@ -144,6 +155,12 @@ const styles = StyleSheet.create({
     flex: 1,
     textAlign: "left",
   },
+  itemTextWide: {
+    fontSize: 16,
+    color: "#333",
+    flex: 2,
+    textAlign: "left",
+  },
   list: {
     padding: 10,
     width: "100%",
@@ -160,5 +177,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#333",
   },
+  headerTextWide: {
+    flex: 2,
+    textAlign: "left",
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+  }
 
 });
