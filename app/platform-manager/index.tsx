@@ -1,6 +1,6 @@
-import { Text, View, StyleSheet, Pressable, FlatList, ActivityIndicator } from "react-native";
+import { Text, View, StyleSheet, Pressable, FlatList, ActivityIndicator, TextInput } from "react-native";
 import { useRouter } from "expo-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 
 //could be moved to a .ts file
@@ -19,6 +19,9 @@ export default function Index() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchId, setSearchId] = useState("");
+
+  const listRef = useRef<FlatList<Order>>(null);
 
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -42,6 +45,17 @@ export default function Index() {
       console.error("Error fetching orders:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const jumpToOrder = (searchId: string) => {
+    const index = orders.findIndex((order) => order.id === searchId);
+    if (index !== -1 && listRef.current) {
+      listRef.current.scrollToIndex({ index, animated: true });
+    } else {
+      // just used window alert instead of React Alert because platform manager should be desktop only
+      window.alert(`No order with the ID "${searchId}" was found.`);
+      console.warn("Order ID not found:", searchId);
     }
   };
 
@@ -97,10 +111,23 @@ export default function Index() {
         <Text style={styles.buttonText}>Home</Text>
       </Pressable>
 
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Enter Order ID"
+          value={searchId}
+          onChangeText={setSearchId}
+        />
+        <Pressable style={styles.button} onPress={() => jumpToOrder(searchId)}>
+          <Text style={styles.buttonText}>Search Order</Text>
+        </Pressable>
+      </View>
+
       {loading ? (
         <ActivityIndicator size="large" color="#00BFA6" />
       ) : (
         <FlatList
+          ref={listRef}
           data={orders}
           renderItem={renderItem}
           ListHeaderComponent={renderHeader}
@@ -183,6 +210,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     color: "#333",
+  },
+  searchContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 10,
+  },
+  searchInput: {
+    flex: 1,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginRight: 8,
+    fontSize: 16,
   }
 
 });
