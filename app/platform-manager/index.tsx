@@ -27,7 +27,6 @@ type Order = {
 
 export default function Index() {
   const router = useRouter();
-  const [orders, setOrders] = useState<Order[]>([]);;
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
