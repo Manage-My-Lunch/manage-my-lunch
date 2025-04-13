@@ -6,6 +6,27 @@ import withRoleProtection from "../../components/withRoleProtection";
 import CustomButton from "@/components/customButton";
 import { format, isToday, parseISO } from "date-fns";
 
+type GroupedOrder = {
+  orderMeta: {
+    orderId: string;
+    totalItems: number;
+    totalCost: number;
+    paidAt: string | null;
+    acceptedAt: string | null;
+    readyAt: string | null;
+    pickupOpen: string;
+    pickupClose: string;
+    comments: string;
+  };
+  items: OrderItem[];
+};
+
+type GroupedPickupWindow = {
+  pickupOpen: string;
+  pickupClose: string;
+  orders: GroupedOrder[];
+};
+
 type OrderItem = {
   itemName: string;
   itemQuantity: number;
@@ -15,7 +36,7 @@ type OrderItem = {
 
 function RestaurantOrders() {
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
-  const [displayOrders, setDisplayOrders] = useState<any[]>([]);
+  const [displayOrders, setDisplayOrders] = useState<GroupedPickupWindow[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
@@ -87,7 +108,8 @@ function RestaurantOrders() {
               id,
               open,
               close
-            )
+            ),
+            comments
           )
         `);
   
@@ -123,6 +145,7 @@ function RestaurantOrders() {
               readyAt: entry.order?.ready_at,
               pickupOpen: entry.order?.pickup_window?.open,
               pickupClose: entry.order?.pickup_window?.close,
+              comments: entry.order?.comments,
             },
             items: [],
           };
@@ -136,13 +159,37 @@ function RestaurantOrders() {
         });
       });
       
-      const sortedGroupedOrders = Object.values(groupedOrders).sort((a, b) => {
-        const timeA = parseISO(a.orderMeta.pickupOpen);
-        const timeB = parseISO(b.orderMeta.pickupOpen);
-        return timeA.getTime() - timeB.getTime();
+      const groupedOrdersArray = Object.values(groupedOrders);
+
+      // Group orders by pickupWindow time
+      const ordersByPickupWindow: Record<string, any[]> = {};
+
+      groupedOrdersArray.forEach(order => {
+        const pickupTime = order.orderMeta.pickupOpen;
+        if (!pickupTime) return; // skip if no pickup time
+
+        if (!ordersByPickupWindow[pickupTime]) {
+          ordersByPickupWindow[pickupTime] = [];
+        }
+
+        ordersByPickupWindow[pickupTime].push(order);
       });
-      
-      setDisplayOrders(sortedGroupedOrders);
+
+      // Create a final array of pickup groups, sorted by time
+      const groupedByPickupArray = Object.entries(ordersByPickupWindow)
+        .sort((a, b) => {
+          const timeA = parseISO(a[0]);
+          const timeB = parseISO(b[0]);
+          return timeA.getTime() - timeB.getTime();
+        })
+        .map(([pickupOpen, orders]) => ({
+          pickupOpen,
+          pickupClose: orders[0].orderMeta.pickupClose, // assume same close time for group
+          orders,
+        }));
+
+      setDisplayOrders(groupedByPickupArray);
+
       setLoading(false);
     };
   
@@ -185,36 +232,53 @@ function RestaurantOrders() {
         />
       </View>
 
-      <View style={{ padding: 16 }}>
+      <View style={{ padding: 16, flex: 1 }}>
         {displayOrders.length === 0 ? (
           <Text>No orders for today.</Text>
         ) : (
           <FlatList
             data={displayOrders}
-            keyExtractor={(item, index) => `group-${item.orderMeta.orderId}-${index}`}
-            renderItem={({ item, index }) => {
-              const isEven = index % 2 === 0;
-              const bgColor = isEven ? "#F9F9F9" : "#E6F7F5";
-
+            keyExtractor={(item, index) => `pickup-group-${item.pickupOpen}-${index}`}
+            contentContainerStyle={{ paddingBottom: 80 }}
+            renderItem={({ item }) => {
               return (
-                <View style={{ marginBottom: 16, backgroundColor: bgColor, borderRadius: 8, padding: 8 }}>
-                  <View style={{ flexDirection: "row", paddingVertical: 6, borderBottomWidth: 1, borderColor: "#ccc" }}>
+                <View style={{ marginBottom: 24, backgroundColor: "#F0F9F7", borderRadius: 12, padding: 12 }}>
+                  <Text style={{ fontSize: 16, fontWeight: "bold", marginBottom: 8 }}>
+                    Pickup Window: {format(parseISO(item.pickupOpen), "h:mmaaa")} - {format(parseISO(item.pickupClose), "h:mmaaa")}
+                  </Text>
+
+                  <View style={{ flexDirection: "row", paddingVertical: 6, borderBottomWidth: 1, borderColor: "#ccc", backgroundColor: "#DFF6F3", borderRadius: 6 }}>
                     <Text style={{ flex: 1, fontWeight: "bold" }}>Item</Text>
-                    <Text style={{ flex: 1, fontWeight: "bold" }}>Quantity</Text>
+                    <Text style={{ flex: 1, fontWeight: "bold" }}>Qty</Text>
                     <Text style={{ flex: 1, fontWeight: "bold" }}>Price</Text>
                     <Text style={{ flex: 1, fontWeight: "bold" }}>Total</Text>
+                    <Text style={{ flex: 1, fontWeight: "bold" }}>Comments</Text>
                   </View>
-                  <Text style={{ fontWeight: "bold", marginBottom: 4 }}>
-                    Order ID: {item.orderMeta.orderId} | Pickup:{" "}
-                    {format(parseISO(item.orderMeta.pickupOpen), "h:mmaaa")} -{" "}
-                    {format(parseISO(item.orderMeta.pickupClose), "h:mmaaa")}
-                  </Text>
-                  {item.items.map((orderItem: OrderItem, idx: number)  => (
-                    <View key={idx} style={{ flexDirection: "row", paddingVertical: 6 }}>
-                      <Text style={{ flex: 1 }}>{orderItem.itemName}</Text>
-                      <Text style={{ flex: 1 }}>{orderItem.itemQuantity}</Text>
-                      <Text style={{ flex: 1 }}>${orderItem.itemPrice?.toFixed(2)}</Text>
-                      <Text style={{ flex: 1 }}>${orderItem.totalItemCost?.toFixed(2)}</Text>
+
+                  {/* Orders */}
+                  {item.orders.map((order, orderIndex: number) => (
+                    <View key={orderIndex} style={{ marginBottom: 16, padding: 8, backgroundColor: "#fff", borderRadius: 8 }}>
+                      <Text style={{ fontWeight: "bold", marginBottom: 4 }}>
+                        Order ID: {order.orderMeta.orderId}
+                      </Text>
+
+                      {order.items.map((item: OrderItem, idx: number) => (
+                        <View key={idx} style={{ flexDirection: "row", paddingVertical: 6 }}>
+                          <Text style={{ flex: 1 }}>{item.itemName}</Text>
+                          <Text style={{ flex: 1 }}>{item.itemQuantity}</Text>
+                          <Text style={{ flex: 1 }}>${item.itemPrice?.toFixed(2)}</Text>
+                          <Text style={{ flex: 1 }}>${item.totalItemCost?.toFixed(2)}</Text>
+
+                          {/* Show comment once for the entire order */}
+                          {idx === 0 ? (
+                            <Text style={{ flex: 1 }}>
+                              {order.orderMeta.comments ? order.orderMeta.comments.trim() : 'No comments'}
+                            </Text>
+                          ) : (
+                            <Text style={{ flex: 1 }}></Text>
+                          )}
+                        </View>
+                      ))}
                     </View>
                   ))}
                 </View>
