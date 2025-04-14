@@ -1,6 +1,6 @@
 import Heading from "@/components/heading";
 import { useCart } from "@/lib/cart";
-import { MenuItemType } from "@/lib/types";
+import { MenuItemType, UserProfile } from "@/lib/types";
 import {
     View,
     Text,
@@ -8,11 +8,36 @@ import {
     TouchableOpacity,
     Image,
     Alert,
+    Modal,
+    Button,
 } from "react-native";
+import { useState, useEffect } from "react";
+import { supabase } from "@/lib/supabase";
 
 export default function Cart() {
-    const { items, addItem, removeItem, total, totalItems, removeAllItems } =
-        useCart();
+    const {
+        items,
+        addItem,
+        removeItem,
+        total,
+        totalItems,
+        removeAllItems,
+        vouchersUsed,
+        setVouchersUsed,
+        discountAmount,
+        finalTotal,
+    } = useCart();
+
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [voucherModalVisible, setVoucherModalVisible] = useState(false);
+    const [maxVouchers, setMaxVouchers] = useState(0);
+    const [tempVouchersUsed, setTempVouchersUsed] = useState(0);
+
+    const priceFormat = new Intl.NumberFormat("en-NZ", {
+        style: "currency",
+        currency: "NZD",
+    });
 
     const handleAddItem = async (item: MenuItemType) => {
         try {
@@ -39,6 +64,64 @@ export default function Cart() {
             console.error("Failed to update item quantity: " + error);
             Alert.alert("Failed to update item quantity: " + error);
         }
+    };
+
+    // Fetch user profile to get available vouchers
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            try {
+                // Get the current user from Supabase auth
+                const {
+                    data: { user },
+                    error: userError,
+                } = await supabase.auth.getUser();
+
+                if (userError || !user) {
+                    console.error("Error fetching user:", userError);
+                    setLoading(false);
+                    return;
+                }
+
+                // Get the user's profile from the user table
+                const { data, error } = await supabase
+                    .from("user")
+                    .select("id, points, voucher_count")
+                    .eq("id", user.id)
+                    .single();
+
+                if (error) {
+                    console.error("Error fetching user profile:", error);
+                } else {
+                    setUserProfile(data as UserProfile);
+                    setMaxVouchers(data.voucher_count || 0);
+                }
+            } catch (error) {
+                console.error("Error:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchUserProfile();
+    }, []);
+
+    const handleOpenVoucherModal = () => {
+        // Initialize temporary voucher count to the current used vouchers
+        setTempVouchersUsed(vouchersUsed);
+        setVoucherModalVisible(true);
+    };
+
+    const handleApplyVouchers = () => {
+        // Apply temporary voucher count to the actual state
+        setVouchersUsed(tempVouchersUsed);
+        setVoucherModalVisible(false);
+    };
+
+    const handleCancelVouchers = () => {
+        // Ignore this adjustment and close the modal
+        setVoucherModalVisible(false);
+        // Reset temporary voucher count (optional, as it will be reinitialized next time)
+        setTempVouchersUsed(vouchersUsed);
     };
 
     return (
@@ -179,8 +262,10 @@ export default function Cart() {
                                                         textAlign: "right",
                                                     }}
                                                 >
-                                                    $
-                                                    {item.price * item.quantity}
+                                                    {priceFormat.format(
+                                                        item.price *
+                                                            item.quantity
+                                                    )}
                                                 </Text>
                                             </View>
                                         </View>
@@ -193,13 +278,121 @@ export default function Cart() {
                         <Heading size={4}>Total items:</Heading> {totalItems}
                     </Text>
                     <Text>
-                        <Heading size={4}>Total:</Heading> ${total}
+                        <Heading size={4}>Total:</Heading>{" "}
+                        {priceFormat.format(total)}
                     </Text>
+
+                    {userProfile && userProfile.voucher_count > 0 && (
+                        <View style={styles.voucherSection}>
+                            <Text style={styles.voucherInfo}>
+                                You have {userProfile.voucher_count} voucher(s)
+                                available
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.voucherButton}
+                                onPress={handleOpenVoucherModal}
+                            >
+                                <Text style={styles.voucherButtonText}>
+                                    {vouchersUsed > 0
+                                        ? `${vouchersUsed} Voucher(s) Applied`
+                                        : "Use Vouchers"}
+                                </Text>
+                            </TouchableOpacity>
+
+                            {vouchersUsed > 0 && (
+                                <View style={styles.discountInfo}>
+                                    <Text style={styles.discountText}>
+                                        Discount:{" "}
+                                        {priceFormat.format(-discountAmount)}
+                                    </Text>
+                                    <Text style={styles.finalTotalText}>
+                                        Final Total:{" "}
+                                        {priceFormat.format(finalTotal)}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+                    )}
+
                     <TouchableOpacity style={styles.completeOrderButton}>
                         <Text style={styles.completeOrderButtonText}>
                             Complete Order
                         </Text>
                     </TouchableOpacity>
+
+                    {/* Voucher Selection Modal */}
+                    <Modal
+                        animationType="slide"
+                        transparent={true}
+                        visible={voucherModalVisible}
+                        onRequestClose={() => setVoucherModalVisible(false)}
+                    >
+                        <View style={styles.modalContainer}>
+                            <View style={styles.modalContent}>
+                                <Text style={styles.modalTitle}>
+                                    Use Vouchers
+                                </Text>
+
+                                <Text style={styles.modalText}>
+                                    You have {userProfile?.voucher_count || 0}{" "}
+                                    voucher(s) available. Each voucher gives you
+                                    $15 off your order.
+                                </Text>
+
+                                <View style={styles.voucherSelector}>
+                                    <Button
+                                        title="-"
+                                        onPress={() =>
+                                            setTempVouchersUsed(
+                                                Math.max(
+                                                    0,
+                                                    tempVouchersUsed - 1
+                                                )
+                                            )
+                                        }
+                                        disabled={tempVouchersUsed <= 0}
+                                    />
+                                    <Text style={styles.voucherNumber}>
+                                        {tempVouchersUsed}
+                                    </Text>
+                                    <Button
+                                        title="+"
+                                        onPress={() =>
+                                            setTempVouchersUsed(
+                                                Math.min(
+                                                    maxVouchers,
+                                                    tempVouchersUsed + 1
+                                                )
+                                            )
+                                        }
+                                        disabled={
+                                            tempVouchersUsed >= maxVouchers ||
+                                            tempVouchersUsed * 15 >= total
+                                        }
+                                    />
+                                </View>
+
+                                <Text style={styles.costText}>
+                                    Discount: ${tempVouchersUsed * 15}
+                                </Text>
+                                <Text style={styles.costText}>
+                                    New Total: $
+                                    {Math.max(0, total - tempVouchersUsed * 15)}
+                                </Text>
+
+                                <View style={styles.modalButtons}>
+                                    <Button
+                                        title="Cancel"
+                                        onPress={handleCancelVouchers}
+                                    />
+                                    <Button
+                                        title="Apply"
+                                        onPress={handleApplyVouchers}
+                                    />
+                                </View>
+                            </View>
+                        </View>
+                    </Modal>
                 </>
             ) : (
                 <>
@@ -248,5 +441,98 @@ const styles = StyleSheet.create({
     quantityText: {
         fontWeight: "bold",
         paddingHorizontal: 4,
+    },
+    voucherSection: {
+        marginTop: 16,
+        padding: 12,
+        backgroundColor: "#f0fffc",
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: "#00BFA6",
+    },
+    voucherInfo: {
+        fontSize: 16,
+        marginBottom: 8,
+        textAlign: "center",
+    },
+    voucherButton: {
+        backgroundColor: "#00BFA6",
+        padding: 10,
+        borderRadius: 6,
+        alignItems: "center",
+    },
+    voucherButtonText: {
+        color: "white",
+        fontWeight: "bold",
+        fontSize: 16,
+    },
+    discountInfo: {
+        marginTop: 12,
+        padding: 8,
+        backgroundColor: "#e6fff9",
+        borderRadius: 6,
+    },
+    discountText: {
+        fontSize: 16,
+        color: "#00BFA6",
+        fontWeight: "bold",
+    },
+    finalTotalText: {
+        fontSize: 18,
+        fontWeight: "bold",
+        marginTop: 4,
+    },
+    modalContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+    },
+    modalContent: {
+        backgroundColor: "white",
+        borderRadius: 8,
+        padding: 20,
+        width: "80%",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+        borderColor: "#00BFA6",
+        borderWidth: 1,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: "bold",
+        marginBottom: 16,
+        textAlign: "center",
+        color: "#00BFA6",
+    },
+    modalText: {
+        fontSize: 16,
+        marginBottom: 20,
+        textAlign: "center",
+    },
+    voucherSelector: {
+        flexDirection: "row",
+        justifyContent: "center",
+        alignItems: "center",
+        marginBottom: 16,
+    },
+    voucherNumber: {
+        fontSize: 24,
+        fontWeight: "bold",
+        marginHorizontal: 20,
+    },
+    costText: {
+        fontSize: 16,
+        textAlign: "center",
+        marginBottom: 8,
+        fontWeight: "bold",
+    },
+    modalButtons: {
+        flexDirection: "row",
+        justifyContent: "space-around",
+        marginTop: 16,
     },
 });

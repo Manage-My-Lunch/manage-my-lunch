@@ -108,6 +108,8 @@ export default function Credentials() {
       university: data.formData.university.id,
       preferred_campus: data.formData.campus.id,
       role: "student",
+      points: 0,         
+      voucher_count: 0   
     });
 
     // Assume that the email may already exist since Supabase errors aren't clear

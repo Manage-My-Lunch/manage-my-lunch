@@ -35,3 +35,15 @@ export interface Allergen {
     id: string;
     name: string;
 }
+
+export interface UserProfile {
+    id: string;
+    email?: string;
+    points: number;
+    voucher_count: number;
+    first_name?: string;
+    last_name?: string;
+    university?: string;
+    preferred_campus?: string;
+    role?: string;
+}
