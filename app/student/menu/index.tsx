@@ -9,12 +9,14 @@ import {
     ActivityIndicator,
     Modal,
     Pressable,
+    Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import withRoleProtection from "@/components/withRoleProtection";
 import { RestaurantType } from "@/lib/types";
 import CuisineList from "@/components/student/menu/CuisineList";
+import OrderNotificationIcon from "@/components/OrderNotificationIcon";
 
 type MenuRestaurant = RestaurantType & {
     restaurant_category: { category: { id: string; name: string } }[];
@@ -29,7 +31,7 @@ export function Index() {
     const [loading, setLoading] = useState(true);
     const [sortType, setSortType] = useState<SortType>("default");
     const [showSortModal, setShowSortModal] = useState(false);
-
+    
     useEffect(() => {
         fetchRestaurants();
     }, [sortType]);
@@ -148,6 +150,21 @@ export function Index() {
                 filter={categoryFilter}
                 handleFilter={handleFilter}
             ></CuisineList>
+            
+            {/* Notification Button */}
+            <View style={styles.notificationContainer}>
+                <TouchableOpacity 
+                    style={styles.notificationButton}
+                    // Navigation to order page
+                    onPress={() => {}}
+                >
+                    <OrderNotificationIcon count={0} />
+                    <Text style={styles.notificationText}>
+                        Your current orders
+                    </Text>
+                </TouchableOpacity>
+            </View>
+            
             {/* Filter Section */}
             <View style={styles.filterSection}>
                 <Pressable
@@ -240,6 +257,25 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#fff",
+    },
+    notificationContainer: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+    },
+    notificationButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#F0F9F6",
+        borderWidth: 1,
+        borderColor: "#00BFA6",
+        borderRadius: 8,
+        padding: 12,
+    },
+    notificationText: {
+        marginLeft: 8,
+        color: "#00BFA6",
+        fontWeight: "600",
+        fontSize: 14,
     },
     list: {
         padding: 10,
