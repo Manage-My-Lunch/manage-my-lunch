@@ -161,6 +161,8 @@ export function Index() {
                     <OrderNotificationIcon count={0} />
                     <Text style={styles.notificationText}>
                         Your current orders
+                        {/* Order count display will be added here */}
+                        <Text style={styles.orderCountText}> (0)</Text>
                     </Text>
                 </TouchableOpacity>
             </View>
@@ -276,6 +278,9 @@ const styles = StyleSheet.create({
         color: "#00BFA6",
         fontWeight: "600",
         fontSize: 14,
+    },
+    orderCountText: {
+        fontWeight: "700",
     },
     list: {
         padding: 10,
