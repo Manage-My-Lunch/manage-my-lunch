@@ -155,8 +155,7 @@ export function Index() {
             <View style={styles.notificationContainer}>
                 <TouchableOpacity 
                     style={styles.notificationButton}
-                    // Navigation to order page
-                    onPress={() => {}}
+                    onPress={() => router.push('/student/orders/current_orders')}
                 >
                     <OrderNotificationIcon count={0} />
                     <Text style={styles.notificationText}>
