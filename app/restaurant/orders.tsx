@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import withRoleProtection from "../../components/withRoleProtection";
 import CustomButton from "@/components/customButton";
 import { format, isToday, parseISO } from "date-fns";
+import alert from "@/components/alert";
 
 // --- Types ---
 type GroupedOrder = {
@@ -285,25 +286,41 @@ function RestaurantOrders() {
                             title={order.orderMeta.readyAt === null ? "Mark as Ready" : "Ready"}
                             onPress={async () => {
                               if (order.orderMeta.readyAt === null) {
-                                const success = await markOrderAsReady(order.orderMeta.orderId);
-                                if (success) {
-                                  setDisplayOrders((prevOrders) =>
-                                    prevOrders.map((pickupGroup) => ({
-                                      ...pickupGroup,
-                                      orders: pickupGroup.orders.map((o) =>
-                                        o.orderMeta.orderId === order.orderMeta.orderId
-                                          ? {
-                                              ...o,
-                                              orderMeta: {
-                                                ...o.orderMeta,
-                                                readyAt: new Date().toISOString(),
-                                              },
-                                            }
-                                          : o
-                                      ),
-                                    }))
-                                  );
-                                }
+                                alert(
+                                  "Confirm Mark as Ready", // Title of the alert
+                                  "Are you sure you want to mark this order as ready?", // Description
+                                  [
+                                    {
+                                      text: "Yes",
+                                      onPress: async () => {
+                                        const success = await markOrderAsReady(order.orderMeta.orderId);
+                                        if (success) {
+                                          setDisplayOrders((prevOrders) =>
+                                            prevOrders.map((pickupGroup) => ({
+                                              ...pickupGroup,
+                                              orders: pickupGroup.orders.map((o) =>
+                                                o.orderMeta.orderId === order.orderMeta.orderId
+                                                  ? {
+                                                      ...o,
+                                                      orderMeta: {
+                                                        ...o.orderMeta,
+                                                        readyAt: new Date().toISOString(),
+                                                      },
+                                                    }
+                                                  : o
+                                              ),
+                                            }))
+                                          );
+                                        }
+                                      },
+                                    },
+                                    {
+                                      text: "No",
+                                      style: "cancel",
+                                      onPress: () => {},
+                                    },
+                                  ]
+                                );
                               }
                             }}
                             style={{
