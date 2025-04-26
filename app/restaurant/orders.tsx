@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
-import { View, Text, FlatList, ActivityIndicator } from "react-native";
+import { View, Text, FlatList, ActivityIndicator, StyleSheet } from "react-native";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import withRoleProtection from "../../components/withRoleProtection";
 import CustomButton from "@/components/customButton";
 import { format, isToday, parseISO } from "date-fns";
 
+// --- Types ---
 type GroupedOrder = {
   orderMeta: {
     orderId: string;
@@ -121,6 +122,7 @@ function RestaurantOrders() {
 
       const groupedOrders: Record<string, any> = {};
   
+      // Filter by restaurant and today's pickup window
       const filteredOrderItems = orderItemsData.filter(
         (entry) => {
           const isFromThisRestaurant = entry.item?.restaurant === restaurantId;
@@ -196,6 +198,22 @@ function RestaurantOrders() {
     fetchOrders();
   }, []);  
 
+  // Update order status as ready
+  const markOrderAsReady = async (orderId: string) => {
+    const { error } = await supabase
+      .from("order")
+      .update({ ready_at: new Date().toISOString() })
+      .eq("id", orderId);
+  
+    if (error) {
+      console.error("Failed to update ready_at:", error.message);
+      return false;
+    }
+  
+    return true;
+  };  
+
+  // --- Loading State ---
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -205,34 +223,20 @@ function RestaurantOrders() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
-      <View style={{
-        padding: 20,
-        backgroundColor: "#00BFA6",
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center"
-      }}>
-        <Text style={{ fontSize: 22, fontWeight: "bold", color: "#fff" }}>
-          {restaurantName}
-        </Text>
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>{restaurantName}</Text>
         <CustomButton
-            title="Return to Dashboard"
-            onPress={() => router.push("/restaurant")}
-            style={{
-                marginTop: 0,
-                paddingVertical: 8,
-                paddingHorizontal: 16,
-                borderRadius: 8,
-                backgroundColor: "#fff"
-              }}
-              textStyle={{
-                color: "#00BFA6"
-              }}
+          title="Return to Dashboard"
+          onPress={() => router.push("/restaurant")}
+          style={styles.backButton}
+          textStyle={styles.backButtonText}
         />
       </View>
 
-      <View style={{ padding: 16, flex: 1 }}>
+      {/* Orders */}
+      <View style={styles.ordersContainer}>
         {displayOrders.length === 0 ? (
           <Text>No orders for today.</Text>
         ) : (
@@ -240,50 +244,91 @@ function RestaurantOrders() {
             data={displayOrders}
             keyExtractor={(item, index) => `pickup-group-${item.pickupOpen}-${index}`}
             contentContainerStyle={{ paddingBottom: 80 }}
-            renderItem={({ item }) => {
-              return (
-                <View style={{ marginBottom: 24, backgroundColor: "#F0F9F7", borderRadius: 12, padding: 12 }}>
-                  <Text style={{ fontSize: 16, fontWeight: "bold", marginBottom: 8 }}>
-                    Pickup Window: {format(parseISO(item.pickupOpen), "h:mmaaa")} - {format(parseISO(item.pickupClose), "h:mmaaa")}
-                  </Text>
+            renderItem={({ item }) => (
+              <View style={styles.pickupGroup}>
+                <Text style={styles.pickupTitle}>
+                  Pickup Window: {format(parseISO(item.pickupOpen), "h:mmaaa")} - {format(parseISO(item.pickupClose), "h:mmaaa")}
+                </Text>
 
-                  <View style={{ flexDirection: "row", paddingVertical: 6, borderBottomWidth: 1, borderColor: "#ccc", backgroundColor: "#DFF6F3", borderRadius: 6 }}>
-                    <Text style={{ flex: 1, fontWeight: "bold" }}>Item</Text>
-                    <Text style={{ flex: 1, fontWeight: "bold" }}>Qty</Text>
-                    <Text style={{ flex: 1, fontWeight: "bold" }}>Price</Text>
-                    <Text style={{ flex: 1, fontWeight: "bold" }}>Total</Text>
-                    <Text style={{ flex: 1, fontWeight: "bold" }}>Comments</Text>
-                  </View>
-
-                  {/* Orders */}
-                  {item.orders.map((order, orderIndex: number) => (
-                    <View key={orderIndex} style={{ marginBottom: 16, padding: 8, backgroundColor: "#fff", borderRadius: 8 }}>
-                      <Text style={{ fontWeight: "bold", marginBottom: 4 }}>
-                        Order ID: {order.orderMeta.orderId}
-                      </Text>
-
-                      {order.items.map((item: OrderItem, idx: number) => (
-                        <View key={idx} style={{ flexDirection: "row", paddingVertical: 6 }}>
-                          <Text style={{ flex: 1 }}>{item.itemName}</Text>
-                          <Text style={{ flex: 1 }}>{item.itemQuantity}</Text>
-                          <Text style={{ flex: 1 }}>${item.itemPrice?.toFixed(2)}</Text>
-                          <Text style={{ flex: 1 }}>${item.totalItemCost?.toFixed(2)}</Text>
-
-                          {/* Show comment once for the entire order */}
-                          {idx === 0 ? (
-                            <Text style={{ flex: 1 }}>
-                              {order.orderMeta.comments ? order.orderMeta.comments.trim() : 'No comments'}
-                            </Text>
-                          ) : (
-                            <Text style={{ flex: 1 }}></Text>
-                          )}
-                        </View>
-                      ))}
-                    </View>
-                  ))}
+                {/* Table Header */}
+                <View style={styles.tableHeader}>
+                  <Text style={styles.tableHeaderText}>Item</Text>
+                  <Text style={styles.tableHeaderText}>Qty</Text>
+                  <Text style={styles.tableHeaderText}>Price</Text>
+                  <Text style={styles.tableHeaderText}>Total</Text>
+                  <Text style={styles.tableHeaderText}>Comments</Text>
+                  <Text style={styles.tableHeaderText}>Status</Text>
                 </View>
-              );
-            }}
+
+                {/* Orders in group */}
+                {item.orders.map((order, orderIndex) => (
+                  <View key={orderIndex} style={styles.orderCard}>
+                    <Text style={styles.orderId}>Order ID: {order.orderMeta.orderId}</Text>
+                    {order.items.map((item, idx) => (
+                      <View key={idx} style={styles.tableRow}>
+                        <Text style={styles.tableCell}>{item.itemName}</Text>
+                        <Text style={styles.tableCell}>{item.itemQuantity}</Text>
+                        <Text style={styles.tableCell}>${item.itemPrice?.toFixed(2)}</Text>
+                        <Text style={styles.tableCell}>${item.totalItemCost?.toFixed(2)}</Text>
+
+                        {idx === 0 ? (
+                          <Text style={styles.tableCell}>
+                            {order.orderMeta.comments?.trim() || "No comments"}
+                          </Text>
+                        ) : (
+                          <Text style={styles.tableCell}></Text>
+                        )}
+
+                        {idx === 0 ? (
+                        <View style={styles.tableCell}>
+                          <CustomButton
+                            title={order.orderMeta.readyAt === null ? "Mark as Ready" : "Ready"}
+                            onPress={async () => {
+                              if (order.orderMeta.readyAt === null) {
+                                const success = await markOrderAsReady(order.orderMeta.orderId);
+                                if (success) {
+                                  setDisplayOrders((prevOrders) =>
+                                    prevOrders.map((pickupGroup) => ({
+                                      ...pickupGroup,
+                                      orders: pickupGroup.orders.map((o) =>
+                                        o.orderMeta.orderId === order.orderMeta.orderId
+                                          ? {
+                                              ...o,
+                                              orderMeta: {
+                                                ...o.orderMeta,
+                                                readyAt: new Date().toISOString(),
+                                              },
+                                            }
+                                          : o
+                                      ),
+                                    }))
+                                  );
+                                }
+                              }
+                            }}
+                            style={{
+                              marginTop: 0,
+                              marginBottom: 20,
+                              paddingVertical: 8,
+                              paddingHorizontal: 16,
+                              borderRadius: 8,
+                              backgroundColor: order.orderMeta.readyAt === null ? "#00BFA6" : "#E0E0E0", // Green when not ready, grey when ready
+                            }}
+                            textStyle={{
+                              color: order.orderMeta.readyAt === null ? "#fff" : "#B0B0B0", // White text when not ready, grey text when ready
+                            }}
+                            disabled={order.orderMeta.readyAt !== null} // Disable the button when ready
+                          />
+                        </View>
+                      ) : (
+                        <Text style={styles.tableCell}></Text>
+                      )}
+                      </View>
+                    ))}
+                  </View>
+                ))}
+              </View>
+            )}
           />
         )}
       </View>
@@ -293,3 +338,82 @@ function RestaurantOrders() {
 
 // Protect the component with role-based access for restaurants
 export default withRoleProtection(RestaurantOrders, ["restaurant"]);
+
+// --- Styles ---
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  header: {
+    padding: 20,
+    backgroundColor: "#00BFA6",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#fff",
+  },
+  backButton: {
+    marginTop: 0,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+  },
+  backButtonText: {
+    color: "#00BFA6",
+  },
+  ordersContainer: {
+    padding: 16,
+    flex: 1,
+  },
+  pickupGroup: {
+    marginBottom: 24,
+    backgroundColor: "#F0F9F7",
+    borderRadius: 12,
+    padding: 12,
+  },
+  pickupTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  tableHeader: {
+    flexDirection: "row",
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderColor: "#ccc",
+    backgroundColor: "#DFF6F3",
+    borderRadius: 6,
+  },
+  tableHeaderText: {
+    flex: 1,
+    fontWeight: "bold",
+  },
+  orderCard: {
+    marginBottom: 16,
+    padding: 8,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+  },
+  orderId: {
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  tableRow: {
+    flexDirection: "row",
+    paddingVertical: 6,
+  },
+  tableCell: {
+    flex: 1,
+  },
+});
+
