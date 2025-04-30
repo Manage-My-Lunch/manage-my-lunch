@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { Text, View, ActivityIndicator, Switch, Alert } from "react-native";
+import { Text, View, ActivityIndicator, StyleSheet, TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import withRoleProtection from "../../components/withRoleProtection";
 import CustomButton from "@/components/customButton";
 import BusyToggle from "@/components/busyToggle";
+import alert from "@/components/alert";
 
 function RestaurantDashboard() {
   const [restaurantName, setRestaurantName] = useState<string | null>(null);
@@ -12,6 +13,9 @@ function RestaurantDashboard() {
   const [loading, setLoading] = useState(true);
   const [isBusy, setIsBusy] = useState<boolean>(false);
   const [toggling, setToggling] = useState(false);
+  const [dailyLimit, setDailyLimit] = useState<number | null>(null);
+  const [tempDailyLimit, setTempDailyLimit] = useState<string>("");
+  const [saving, setSaving] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -44,7 +48,7 @@ function RestaurantDashboard() {
       // Fetch the restaurant name from restaurant table
       const { data: restaurant, error: restaurantError } = await supabase
         .from("restaurant")
-        .select("name, is_busy")
+        .select("name, is_busy, daily_limit")
         .eq("id", restaurantUser.restaurant_id)
         .single();
 
@@ -57,20 +61,50 @@ function RestaurantDashboard() {
       setRestaurantId(restaurantUser.restaurant_id);
       setRestaurantName(restaurant.name);
       setIsBusy(restaurant.is_busy);
+      setDailyLimit(restaurant.daily_limit);
+      setTempDailyLimit(restaurant.daily_limit?.toString() || "");
       setLoading(false);
     };
 
     fetchRestaurantName();
   }, []);
 
+  // Handle setting max daily limit of orders
+  const handleSaveDailyLimit = async () => {
+    if (!restaurantId) return;
+  
+    // Check if input is a non-negative integer using regex
+    if (!/^\d+$/.test(tempDailyLimit)) {
+      alert("Error", "Please enter a valid whole number (0 or higher).");
+      return;
+    }
+  
+    const parsedLimit = parseInt(tempDailyLimit, 10);
+  
+    setSaving(true);
+    const { error } = await supabase
+      .from("restaurant")
+      .update({ daily_limit: parsedLimit })
+      .eq("id", restaurantId);
+  
+    if (error) {
+      alert("Error", "Failed to update daily limit.");
+      console.error("Update error:", error);
+    } else {
+      setDailyLimit(parsedLimit);
+      alert("Success", "Daily order limit updated!");
+    }
+    setSaving(false);
+  };  
+
   // Handle logout
   const handleLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
-      Alert.alert("Logout Error", error.message);
+      alert("Logout Error", error.message);
     } else {
       router.replace("/login");
-      Alert.alert("Successfully logged out!");
+      alert("Successfully logged out!", "");
     }
   };
 
@@ -85,7 +119,7 @@ function RestaurantDashboard() {
       .eq("id", restaurantId);
 
     if (error) {
-      Alert.alert("Error", "Failed to update restaurant status.");
+      alert("Error", "Failed to update restaurant status.");
       console.error("Toggle error:", error);
     } else {
       setIsBusy((prev) => !prev);
@@ -102,32 +136,34 @@ function RestaurantDashboard() {
   }
 
   return (
-    <View style={{ flex: 1 }}>
-            <View style={{
-        padding: 20,
-        backgroundColor: "#00BFA6",
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center"
-      }}>
-        <Text style={{ fontSize: 22, fontWeight: "bold", color: "#fff" }}>
-          Welcome to {restaurantName}!
-        </Text>
-        <BusyToggle
-          isBusy={!!isBusy}
-          onToggle={handleToggleBusy}
-          disabled={toggling}
-        />
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Welcome to {restaurantName}!</Text>
+        <BusyToggle isBusy={!!isBusy} onToggle={handleToggleBusy} disabled={toggling} />
       </View>
-      <View style={{  padding: 16, justifyContent: "center", alignItems: "center" }}>
-        <CustomButton
-          title="View Today's Orders"
-          onPress={() => router.push("/restaurant/orders")}
-        />
-        <CustomButton
-          title="Logout"
-          onPress={handleLogout}
-        />
+
+      <View style={styles.content}>
+        <CustomButton title="View Today's Orders" onPress={() => router.push("/restaurant/orders")} />
+
+        <View style={styles.limitSection}>
+          <Text style={styles.label}>Maximum Daily Orders Limit:</Text>
+          <TextInput
+            style={styles.input}
+            keyboardType="numeric"
+            value={tempDailyLimit}
+            onChangeText={setTempDailyLimit}
+            placeholder="Enter daily limit"
+          />
+          <View style={styles.buttonRow}>
+            <CustomButton title="Save" onPress={handleSaveDailyLimit} disabled={saving} />
+            <CustomButton
+              title="Cancel"
+              onPress={() => setTempDailyLimit(dailyLimit?.toString() || "")}
+            />
+          </View>
+        </View>
+
+        <CustomButton title="Logout" onPress={handleLogout} />
       </View>
     </View>
   );
@@ -135,3 +171,60 @@ function RestaurantDashboard() {
 
 // Protect the component with role-based access for restaurants
 export default withRoleProtection(RestaurantDashboard, ["restaurant"]);
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  header: {
+    padding: 20,
+    backgroundColor: "#00BFA6",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  headerText: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#fff",
+    flex: 1,
+    flexWrap: "wrap",
+    marginRight: 10,
+  },
+  content: {
+    padding: 16,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  limitSection: {
+    marginTop: 20,
+    padding: 16,
+    width: "100%",
+    alignItems: "center",
+  },
+  label: {
+    fontSize: 16,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    width: 200,
+    fontSize: 16,
+    textAlign: "center",
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    gap: 8,
+  },
+});
