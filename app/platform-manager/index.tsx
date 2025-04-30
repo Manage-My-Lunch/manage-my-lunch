@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 //could be moved to a .ts file
 type Order = {
   id: string;
+  first_name: string,
+  last_name: string,
   collection_point_name: string;
   pickup_open: string;
   pickup_close: string;
@@ -18,6 +20,7 @@ type Order = {
 export default function Index() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchId, setSearchId] = useState("");
 
@@ -36,10 +39,13 @@ export default function Index() {
       
       if (error) throw error;
       
+      const uncollected = data.filter((order: Order) => order.collected_at === null);
+
       //for future sorting
-      const sortedData = data;
+      const sortedData = uncollected;
 
       setOrders(sortedData);
+      setFilteredOrders(sortedData);
       console.log("Fetched orders:", data);
     } catch (error) {
       console.error("Error fetching orders:", error);
@@ -48,33 +54,61 @@ export default function Index() {
     }
   };
 
-  const jumpToOrder = (searchId: string) => {
-    const index = orders.findIndex((order) => order.id === searchId);
-    if (index !== -1 && listRef.current) {
-      listRef.current.scrollToIndex({ index, animated: true });
-    } else {
-      // just used window alert instead of React Alert because platform manager should be desktop only
-      window.alert(`No order with the ID "${searchId}" was found.`);
-      console.warn("Order ID not found:", searchId);
+  // const jumpToOrder = (searchId: string) => {
+  //   const index = orders.findIndex((order) => order.id === searchId);
+  //   if (index !== -1 && listRef.current) {
+  //     listRef.current.scrollToIndex({ index, animated: true });
+  //   } else {
+  //     // just used window alert instead of React Alert because platform manager should be desktop only
+  //     window.alert(`No order with the ID "${searchId}" was found.`);
+  //     console.warn("Order ID not found:", searchId);
+  //   }
+  // };
+
+  const filterOrders = (searchName: string) => {
+    const search = searchName.trim().toLowerCase();
+  
+    if (!search) {
+      setFilteredOrders(orders); // reset filter if empty
+      return;
     }
+  
+    const filtered = orders.filter((order) => {
+      const fullName = `${order.first_name} ${order.last_name}`.toLowerCase();
+      return fullName.includes(search);
+    });
+  
+    setFilteredOrders(filtered);
+  };
+
+  const collectOrder = async(orderId: string) => {
+    const { error } = await supabase.rpc('collect_order', {order_id: orderId});
+  
+    if (error) {
+      console.error("Error marking order as collected:", error);
+      window.alert("Failed to confirm pickup.");
+      return false;
+    }
+
+    return true;
   };
 
   const renderHeader = () => (
     <View style={[styles.row, styles.headerRow]}>
-      <Text style={[styles.headerTextWide]}>Order ID</Text>
+      <Text style={[styles.headerTextWide]}>Order User Name</Text>
       <Text style={[styles.headerTextWide]}>Collection Point</Text>
       <Text style={[styles.headerTextWide]}>Pickup Window</Text>
       <Text style={[styles.headerText]}>Delivered?</Text>
-      <Text style={[styles.headerText]}>Collected?</Text>
       <Text style={[styles.headerText]}>Total Items</Text>
       <Text style={[styles.headerTextWide]}>Comments</Text>
+      <Text style={[styles.headerText]}>Confirm</Text>
     </View>
   );
 
   const renderItem = ({ item }: { item: Order }) => (
     <View style={styles.item}>
       <View style={styles.row}>
-        <Text style={styles.itemTextWide}>{item.id}</Text>
+        <Text style={styles.itemTextWide}>{item.first_name} {item.last_name}</Text>
         <Text style={styles.itemTextWide}>{item.collection_point_name}</Text>
         <Text style={styles.itemTextWide}>
           {item.pickup_open ? new Intl.DateTimeFormat('en-US', {
@@ -96,11 +130,36 @@ export default function Index() {
         <Text style={styles.itemText}>
           {item.delivered_at ? "✔" : "✖"}
         </Text>
-        <Text style={styles.itemText}>
-          {item.collected_at ? "✔" : "✖"}
-        </Text>
         <Text style={styles.itemText}>{item.total_items}</Text>
         <Text style={styles.itemTextWide}>{item.comments ? item.comments : <i>None</i>}</Text>
+        <Pressable
+            style={styles.button}
+            onPress={async () => {
+              const userPin = window.prompt(`Enter PIN for ${item.first_name} ${item.last_name}:`);
+
+              if (userPin === null) return;
+
+              // will replace later after generation in DB is implemented
+              const expectedPin = '1234';
+
+              if (userPin === expectedPin) {
+                const confirm = window.confirm("PIN verified. Confirm pickup?");
+                if (confirm) {
+                  const success = await collectOrder(item.id);
+                  if (success) {
+                    const today = new Date().toISOString().split("T")[0];
+                    await fetchOrders(today);
+                  }
+                }
+              } else {
+                window.alert("Incorrect PIN.");
+              }
+            }
+        }
+        >
+          <Text style={styles.buttonText}>Enter PIN</Text>
+        </Pressable>
+
       </View>
     </View>
   );
@@ -114,11 +173,11 @@ export default function Index() {
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
-          placeholder="Enter Order ID"
+          placeholder="Enter search details"
           value={searchId}
           onChangeText={setSearchId}
         />
-        <Pressable style={styles.button} onPress={() => jumpToOrder(searchId)}>
+        <Pressable style={styles.button} onPress={() => filterOrders(searchId) /* jumpToOrder(searchId) */}>
           <Text style={styles.buttonText}>Search Order</Text>
         </Pressable>
       </View>
@@ -128,7 +187,7 @@ export default function Index() {
       ) : (
         <FlatList
           ref={listRef}
-          data={orders}
+          data={filteredOrders}
           renderItem={renderItem}
           ListHeaderComponent={renderHeader}
           keyExtractor={(item) => item.id}
