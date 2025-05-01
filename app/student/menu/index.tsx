@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
     Text,
     View,
@@ -11,12 +11,13 @@ import {
     Pressable,
     Alert,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import { supabase } from "@/lib/supabase";
 import withRoleProtection from "@/components/withRoleProtection";
 import { RestaurantType } from "@/lib/types";
 import CuisineList from "@/components/student/menu/CuisineList";
 import OrderNotificationIcon from "@/components/OrderNotificationIcon";
+import { getUnclaimedOrdersCount } from "@/lib/orders";
 
 type MenuRestaurant = RestaurantType & {
     restaurant_category: { category: { id: string; name: string } }[];
@@ -29,12 +30,31 @@ export function Index() {
     const [restaurants, setRestaurants] = useState<MenuRestaurant[]>([]);
     const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
+    const [unclaimedOrdersCount, setUnclaimedOrdersCount] = useState(0);
     const [sortType, setSortType] = useState<SortType>("default");
     const [showSortModal, setShowSortModal] = useState(false);
     
+    // Get count of unclaimed orders
+    const fetchUnclaimedOrdersCount = async () => {
+        try {
+            const count = await getUnclaimedOrdersCount();
+            setUnclaimedOrdersCount(count);
+        } catch (error) {
+            console.error('Error fetching unclaimed orders count:', error);
+        }
+    };
+    
     useEffect(() => {
         fetchRestaurants();
-    }, [sortType]);
+        fetchUnclaimedOrdersCount();
+    }, [categoryFilter]);
+
+    // Refresh unclaimed orders count when page gets focus
+    useFocusEffect(
+        useCallback(() => {
+            fetchUnclaimedOrdersCount();
+        }, [])
+    );
 
     const formatPopularity = (value: number): string => {
         if (value >= 1000) return `${Math.floor(value / 1000) * 1000}+`;
@@ -42,14 +62,10 @@ export function Index() {
         return value.toString();
     };
 
-    const handleFilter = (id: string | null) => {
-        if (categoryFilter === id) {
-            setCategoryFilter(null);
-        } else {
-            setCategoryFilter(id);
-        }
+    const handleFilter = (categoryId: string | null) => {
+        setCategoryFilter(categoryId);
     };
-
+    
     const fetchRestaurants = async () => {
         try {
             setLoading(true);
@@ -151,20 +167,20 @@ export function Index() {
                 handleFilter={handleFilter}
             ></CuisineList>
             
-            {/* Notification Button */}
-            <View style={styles.notificationContainer}>
-                <TouchableOpacity 
-                    style={styles.notificationButton}
-                    onPress={() => router.push('/student/orders/current_orders')}
-                >
-                    <OrderNotificationIcon count={0} />
-                    <Text style={styles.notificationText}>
-                        Your current orders
-                        {/* Order count display will be added here */}
-                        <Text style={styles.orderCountText}> (0)</Text>
-                    </Text>
-                </TouchableOpacity>
-            </View>
+            {/* Notification Button - Only show if there are unclaimed orders */}
+            {unclaimedOrdersCount > 0 && (
+                <View style={styles.notificationContainer}>
+                    <TouchableOpacity 
+                        style={styles.notificationButton}
+                        onPress={() => router.push('/student/menu/orders')}
+                    >
+                        <OrderNotificationIcon count={unclaimedOrdersCount} />
+                        <Text style={styles.notificationText}>
+                            Your current orders
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            )}
             
             {/* Filter Section */}
             <View style={styles.filterSection}>
