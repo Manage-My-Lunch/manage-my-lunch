@@ -414,6 +414,108 @@ export class Cart {
 
         return data;
     }
+
+    public async completeOrder() {
+        try {
+            // Track processed restaurant IDs to avoid duplicate updates
+            const processedRestaurants = new Set<string>();
+    
+            for (const restaurantGroup of this.#items) {
+                const restaurantId = restaurantGroup.id;
+    
+                // Skip if already processed in this order
+                if (processedRestaurants.has(restaurantId)) {
+                    continue;
+                }
+    
+                // Get restaurant daily limit
+                const { data: restaurantData, error: restaurantError } = await supabase
+                    .from("restaurant")
+                    .select("daily_limit, is_busy")
+                    .eq("id", restaurantId)
+                    .single();
+    
+                if (restaurantError) {
+                    console.error(`Error fetching restaurant ${restaurantId}:`, restaurantError);
+                    throw restaurantError;
+                }
+                if (!restaurantData) {
+                    console.error(`Restaurant ${restaurantId} not found`);
+                    throw new Error(`Restaurant ${restaurantId} not found`);
+                }
+    
+                const dailyLimit = restaurantData.daily_limit;
+    
+                const { data: dailyOrderData, error: dailyOrderError } = await supabase
+                    .from("daily_orders")
+                    .select("orders_today")
+                    .eq("restaurant_id", restaurantId)
+                    .single();
+    
+                if (dailyOrderError) {
+                    console.error(`Error fetching daily_orders for restaurant ${restaurantId}:`, dailyOrderError);
+                    throw dailyOrderError;
+                }
+                if (!dailyOrderData) {
+                    console.error(`Daily order entry missing for restaurant ${restaurantId}`);
+                    throw new Error(`Daily order entry missing for restaurant ${restaurantId}`);
+                }
+    
+                let currentCount = dailyOrderData.orders_today;
+    
+                // Increment daily count
+                currentCount += 1;
+    
+                // Update the daily_order table
+                const { error: updateDailyError } = await supabase
+                    .from("daily_orders")
+                    .update({ orders_today: currentCount })
+                    .eq("restaurant_id", restaurantId);
+    
+                if (updateDailyError) {
+                    console.error(`Error updating daily_order for restaurant ${restaurantId}:`, updateDailyError);
+                    throw updateDailyError;
+                }
+    
+                // If count reaches or exceeds limit, mark restaurant as busy
+                if (currentCount >= dailyLimit && !restaurantData.is_busy) {
+                    const { error: updateRestaurantError } = await supabase
+                        .from("restaurant")
+                        .update({ is_busy: true })
+                        .eq("id", restaurantId);
+    
+                    if (updateRestaurantError) {
+                        console.error(`Error marking restaurant ${restaurantId} as busy:`, updateRestaurantError);
+                        throw updateRestaurantError;
+                    }
+                }
+    
+                processedRestaurants.add(restaurantId);
+            }
+    
+            // Finally, mark this cart/order as completed
+            const now = new Date().toISOString();
+    
+            const { error: completeOrderError } = await supabase
+                .from("order")
+                .update({ paid_at: now, updated_at: now })
+                .eq("id", this.#id);
+    
+            if (completeOrderError) {
+                console.error(`Error completing order ${this.#id}:`, completeOrderError);
+                throw completeOrderError;
+            }
+    
+            this.#paid_at = new Date(now);
+    
+            // Clear cart items after completion
+            await this.removeAllItems();
+    
+        } catch (error) {
+            console.error('Unexpected error during completeOrder:', error);
+            throw error; // Re-throw to let calling code handle
+        }
+    }        
 }
 
 // A React context for our cart so we can share it across components
@@ -433,6 +535,7 @@ const CartContext = createContext<
           setVouchersUsed: (count: number) => void;
           discountAmount: number;
           finalTotal: number;
+          completeOrder: () => void;
       }
     | undefined
 >(undefined);
@@ -520,6 +623,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setTotalItems(cart.totalItems);
     };
 
+    const completeOrder = async() => {
+        await cart.completeOrder();
+        setCart(cart);
+        setItems(cart.items);
+        setTotal(cart.total);
+        setTotalItems(cart.totalItems);
+    };
+
     return (
         <CartContext.Provider
             value={{
@@ -533,6 +644,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 setVouchersUsed,
                 discountAmount,
                 finalTotal,
+                completeOrder,
             }}
         >
             {children}

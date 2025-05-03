@@ -26,6 +26,7 @@ export default function Cart() {
         setVouchersUsed,
         discountAmount,
         finalTotal,
+        completeOrder,
     } = useCart();
 
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -63,6 +64,15 @@ export default function Cart() {
         } catch (error) {
             console.error("Failed to update item quantity: " + error);
             Alert.alert("Failed to update item quantity: " + error);
+        }
+    };
+
+    const handleCompleteOrder = async () => {
+        try {
+            await completeOrder();
+        } catch (error) {
+            console.error("Failed to complete order " + error);
+            Alert.alert("Failed to complete order: " + error);
         }
     };
 
@@ -314,7 +324,10 @@ export default function Cart() {
                         </View>
                     )}
 
-                    <TouchableOpacity style={styles.completeOrderButton}>
+                    <TouchableOpacity 
+                        style={styles.completeOrderButton}
+                        onPress={handleCompleteOrder}
+                    >
                         <Text style={styles.completeOrderButtonText}>
                             Complete Order
                         </Text>
