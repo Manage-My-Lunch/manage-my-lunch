@@ -2,7 +2,7 @@ import { Platform, View, Text, ActivityIndicator, Alert } from "react-native";
 import React, { useEffect, useState } from "react";
 import { Tabs } from "expo-router";
 import { Entypo, Ionicons } from "@expo/vector-icons";
-import { Cart, CartProvider } from "@/lib/cart";
+import { CartProvider } from "@/lib/cart";
 
 const TabsLayout = () => {
     return (
@@ -37,6 +37,12 @@ const TabsLayout = () => {
                         tabBarIcon: ({ color }) => (
                             <Ionicons name="person" size={24} color={color} />
                         ),
+                    }}
+                />
+                <Tabs.Screen
+                    name="checkout"
+                    options={{
+                        href: null,
                     }}
                 />
             </Tabs>

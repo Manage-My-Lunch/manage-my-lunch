@@ -1,0 +1,203 @@
+import Heading from "@/components/heading";
+import { supabase } from "@/lib/supabase";
+import { Picker } from "@react-native-picker/picker";
+import { router } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+    KeyboardAvoidingView,
+    Text,
+    StyleSheet,
+    Alert,
+    View,
+    Keyboard,
+    TouchableWithoutFeedback,
+    Platform,
+    TouchableOpacity,
+} from "react-native";
+
+export default function Checkout() {
+    const [pickupLocations, setPickupLocations] = useState<
+        { id: string; name: string }[]
+    >([]);
+    const [pickupLocation, setPickupLocation] = useState(0);
+
+    const [pickupWindows, setPickupWindows] = useState<
+        { id: string; open: Date; close: Date; available_slots: number }[]
+    >([]);
+    const [pickupWindow, setPickupWindow] = useState(0);
+
+    const fetchWindows = async (id: string) => {
+        const now = new Date();
+
+        const tomorrow = new Date(now);
+        tomorrow.setDate(now.getDate() + 1);
+
+        const { data: windows, error } = await supabase
+            .from("pickup_window")
+            .select()
+            .eq("collection_point", id)
+            .gte("open", now.toISOString())
+            .lte("close", tomorrow.toISOString())
+            .gt("available_slots", 0)
+            .order("open", { ascending: true })
+            .overrideTypes<
+                Array<{
+                    id: string;
+                    open: string;
+                    close: string;
+                    available_slots: number;
+                }>
+            >();
+
+        if (error !== null) {
+            Alert.alert(
+                "Something went wrong fetching pickup windows.",
+                error.message
+            );
+            return;
+        }
+
+        setPickupWindows(
+            windows.map((w) => {
+                return {
+                    ...w,
+                    open: new Date(w.open),
+                    close: new Date(w.close),
+                };
+            })
+        );
+    };
+
+    const fetchLocations = async () => {
+        const user = await supabase.auth.getUser();
+
+        if (user.data.user === null) {
+            Alert.alert("Something went wrong. Could not retrieve user ID.");
+            return;
+        }
+
+        const { data: campus, error: campusError } = await supabase
+            .from("user")
+            .select("preferred_campus")
+            .eq("id", user.data.user.id)
+            .single<{ preferred_campus: string }>();
+
+        if (campusError !== null) {
+            Alert.alert(
+                "Something went wrong fetching user details. " +
+                    campusError.message
+            );
+            return;
+        }
+
+        if (campus === null) {
+            Alert.alert("Something went wrong. Could not retrieve user data.");
+            return;
+        }
+
+        const { data: collectionPoints, error: collectionPointError } =
+            await supabase
+                .from("collection_point")
+                .select()
+                .eq("campus", campus.preferred_campus)
+                .overrideTypes<Array<{ id: string; name: string }>>();
+
+        if (collectionPointError !== null) {
+            Alert.alert(
+                "Something went wrong fetching pickup locations. " +
+                    collectionPointError
+            );
+            return;
+        }
+
+        setPickupLocations(collectionPoints);
+        await fetchWindows(collectionPoints[0].id);
+    };
+
+    useEffect(() => {
+        fetchLocations();
+    }, []);
+
+    return (
+        <View style={styles.body}>
+            <Heading size={3}>Pickup Location:</Heading>
+            <Picker
+                itemStyle={{ minWidth: "100%" }}
+                selectedValue={pickupLocation}
+                onValueChange={(v, i) => {
+                    setPickupLocation(i);
+                    fetchWindows(pickupLocations[i].id);
+                }}
+                style={styles.picker}
+            >
+                {pickupLocations.map((c, i) => {
+                    return (
+                        <Picker.Item
+                            color="black"
+                            label={`${c.name}`}
+                            value={i}
+                            key={c.id}
+                        ></Picker.Item>
+                    );
+                })}
+            </Picker>
+            <Heading size={3} style={{ marginTop: 16 }}>
+                Pickup Windows:
+            </Heading>
+            <Picker
+                itemStyle={{ minWidth: "100%" }}
+                selectedValue={pickupWindow}
+                onValueChange={(v, i) => {
+                    setPickupWindow(i);
+                }}
+                style={styles.picker}
+            >
+                {pickupWindows.map((c, i) => {
+                    return (
+                        <Picker.Item
+                            color="black"
+                            label={`${c.open.toLocaleString("en-NZ", {})}`}
+                            value={i}
+                            key={c.id}
+                        ></Picker.Item>
+                    );
+                })}
+            </Picker>
+
+            <TouchableOpacity
+                style={styles.continueButton}
+                onPress={() => router.push("/student/checkout")}
+            >
+                <Text style={styles.continueButtonText}>
+                    Continue To Payment
+                </Text>
+            </TouchableOpacity>
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    body: {
+        padding: 16,
+    },
+    picker: {
+        backgroundColor: "white",
+        marginTop: 8,
+        borderWidth: 1,
+        borderRadius: 4,
+        width: "100%",
+        color: "black",
+    },
+    continueButton: {
+        marginTop: 8,
+        backgroundColor: "black",
+        borderRadius: 8,
+        padding: 8,
+    },
+    continueButtonText: {
+        color: "white",
+        fontSize: 24,
+        fontWeight: 700,
+        textAlign: "center",
+    },
+});

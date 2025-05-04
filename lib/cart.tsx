@@ -414,6 +414,15 @@ export class Cart {
 
         return data;
     }
+
+    public setComment = async (comment: string) => {
+        const { error } = await supabase
+            .from("order")
+            .update({ comments: comment, updated_at: new Date() })
+            .eq("id", this.#id);
+
+        if (error) throw error;
+    };
 }
 
 // A React context for our cart so we can share it across components
@@ -427,6 +436,7 @@ const CartContext = createContext<
           addItem: (item: MenuItemType, quantity: number) => Promise<void>;
           removeItem: (item: MenuItemType, quantity: number) => Promise<void>;
           removeAllItems: () => Promise<void>;
+          setComment: (comment: string) => Promise<void>;
           totalItems: number;
           total: number;
           vouchersUsed: number;
@@ -470,7 +480,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
         initializeCart();
     }, []);
-    
+
     // Update discount amount and final total when vouchers used changes
     useEffect(() => {
         const discount = vouchersUsed * 15; // Each voucher is worth $15
@@ -520,6 +530,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setTotalItems(cart.totalItems);
     };
 
+    const setComment = async (comment: string) => {
+        await cart.setComment(comment);
+    };
+
     return (
         <CartContext.Provider
             value={{
@@ -527,6 +541,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 addItem,
                 removeItem,
                 removeAllItems,
+                setComment,
                 total,
                 totalItems,
                 vouchersUsed,
