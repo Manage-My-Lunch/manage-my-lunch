@@ -15,6 +15,7 @@ type Order = {
   collected_at: string | null;
   total_items: number;
   comments: string | null;
+  pin: string;
 };
 
 export default function Index() {
@@ -46,7 +47,6 @@ export default function Index() {
 
       setOrders(sortedData);
       setFilteredOrders(sortedData);
-      console.log("Fetched orders:", data);
     } catch (error) {
       console.error("Error fetching orders:", error);
     } finally {
@@ -139,10 +139,7 @@ export default function Index() {
 
               if (userPin === null) return;
 
-              // will replace later after generation in DB is implemented
-              const expectedPin = '1234';
-
-              if (userPin === expectedPin) {
+              if (userPin === item.pin) {
                 const confirm = window.confirm("PIN verified. Confirm pickup?");
                 if (confirm) {
                   const success = await collectOrder(item.id);
