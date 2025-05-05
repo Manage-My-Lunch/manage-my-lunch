@@ -82,6 +82,8 @@ function RestaurantDashboard() {
     const parsedLimit = parseInt(tempDailyLimit, 10);
   
     setSaving(true);
+
+    // Update the daily limit
     const { error } = await supabase
       .from("restaurant")
       .update({ daily_limit: parsedLimit })
@@ -90,10 +92,66 @@ function RestaurantDashboard() {
     if (error) {
       alert("Error", "Failed to update daily limit.");
       console.error("Update error:", error);
-    } else {
-      setDailyLimit(parsedLimit);
-      alert("Success", "Daily order limit updated!");
     }
+
+    // Fetch current daily_orders count
+    const { data: dailyOrderData, error: fetchDailyError } = await supabase
+      .from("daily_orders")
+      .select("orders_today")
+      .eq("restaurant_id", restaurantId)
+      .single();
+
+    if (fetchDailyError || !dailyOrderData) {
+      alert("Error", "Failed to fetch today's order count.");
+      console.error("Fetch error:", fetchDailyError);
+      setSaving(false);
+      return;
+    }
+
+    const ordersToday = dailyOrderData.orders_today;
+
+    // Fetch current busy status
+    const { data: restaurantData, error: fetchRestaurantError } = await supabase
+      .from("restaurant")
+      .select("is_busy")
+      .eq("id", restaurantId)
+      .single();
+
+    if (fetchRestaurantError || !restaurantData) {
+      alert("Error", "Failed to fetch restaurant status.");
+      console.error("Fetch error:", fetchRestaurantError);
+      setSaving(false);
+      return;
+    }
+
+    const currentBusy = restaurantData.is_busy;
+
+    // Compare and update busy status if needed
+    let newBusyStatus = currentBusy;
+
+    if (ordersToday < parsedLimit && currentBusy) {
+      // Unmark busy
+      newBusyStatus = false;
+    } else if (ordersToday >= parsedLimit && !currentBusy) {
+      // Mark busy
+      newBusyStatus = true;
+    }
+
+    if (newBusyStatus !== currentBusy) {
+      const { error: busyError } = await supabase
+        .from("restaurant")
+        .update({ is_busy: newBusyStatus })
+        .eq("id", restaurantId);
+
+      if (busyError) {
+        console.error("Failed to update busy status:", busyError);
+      } else {
+        setIsBusy(newBusyStatus);
+      }
+    }
+
+    setDailyLimit(parsedLimit);
+    alert("Success", "Daily order limit updated!");
     setSaving(false);
   };  
 
