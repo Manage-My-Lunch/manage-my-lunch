@@ -1,21 +1,20 @@
 import Heading from "@/components/heading";
+import { useCart } from "@/lib/cart";
 import { supabase } from "@/lib/supabase";
 import { Picker } from "@react-native-picker/picker";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
-    KeyboardAvoidingView,
     Text,
     StyleSheet,
     Alert,
     View,
-    Keyboard,
-    TouchableWithoutFeedback,
-    Platform,
     TouchableOpacity,
+    ActivityIndicator,
 } from "react-native";
 
 export default function Checkout() {
+    const [loading, setLoading] = useState(false);
     const [pickupLocations, setPickupLocations] = useState<
         { id: string; name: string }[]
     >([]);
@@ -26,7 +25,11 @@ export default function Checkout() {
     >([]);
     const [pickupWindow, setPickupWindow] = useState(0);
 
+    const { completeOrder } = useCart();
+
     const fetchWindows = async (id: string) => {
+        setLoading(true);
+
         const now = new Date();
 
         const tomorrow = new Date(now);
@@ -54,6 +57,7 @@ export default function Checkout() {
                 "Something went wrong fetching pickup windows.",
                 error.message
             );
+            setLoading(false);
             return;
         }
 
@@ -66,13 +70,18 @@ export default function Checkout() {
                 };
             })
         );
+
+        setLoading(false);
     };
 
     const fetchLocations = async () => {
+        setLoading(true);
+
         const user = await supabase.auth.getUser();
 
         if (user.data.user === null) {
             Alert.alert("Something went wrong. Could not retrieve user ID.");
+            setLoading(false);
             return;
         }
 
@@ -87,11 +96,13 @@ export default function Checkout() {
                 "Something went wrong fetching user details. " +
                     campusError.message
             );
+            setLoading(false);
             return;
         }
 
         if (campus === null) {
             Alert.alert("Something went wrong. Could not retrieve user data.");
+            setLoading(false);
             return;
         }
 
@@ -107,16 +118,24 @@ export default function Checkout() {
                 "Something went wrong fetching pickup locations. " +
                     collectionPointError
             );
+            setLoading(false);
             return;
         }
 
         setPickupLocations(collectionPoints);
         await fetchWindows(collectionPoints[0].id);
+
+        setLoading(false);
     };
 
     useEffect(() => {
         fetchLocations();
     }, []);
+
+    const handlePay = async () => {
+        setLoading(false);
+        await completeOrder(pickupWindows[pickupWindow].id);
+    };
 
     return (
         <View style={styles.body}>
@@ -164,14 +183,16 @@ export default function Checkout() {
                 })}
             </Picker>
 
-            <TouchableOpacity
-                style={styles.continueButton}
-                onPress={() => router.push("/student/checkout")}
-            >
-                <Text style={styles.continueButtonText}>
-                    Continue To Payment
-                </Text>
-            </TouchableOpacity>
+            {!loading ? (
+                <TouchableOpacity
+                    style={styles.continueButton}
+                    onPress={handlePay}
+                >
+                    <Text style={styles.continueButtonText}>Pay</Text>
+                </TouchableOpacity>
+            ) : (
+                <ActivityIndicator></ActivityIndicator>
+            )}
         </View>
     );
 }
