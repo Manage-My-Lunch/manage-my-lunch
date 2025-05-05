@@ -133,8 +133,9 @@ export default function Checkout() {
     }, []);
 
     const handlePay = async () => {
+        setLoading(true);
+        await completeOrder();
         setLoading(false);
-        await completeOrder(pickupWindows[pickupWindow].id);
     };
 
     return (

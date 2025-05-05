@@ -544,6 +544,8 @@ export class Cart {
             console.error("Unexpected error during completeOrder:", error);
             throw error; // Re-throw to let calling code handle
         }
+
+        Alert.alert("Order complete");
     }
 }
 
