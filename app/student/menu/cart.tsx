@@ -1,6 +1,7 @@
 import Heading from "@/components/heading";
 import { useCart } from "@/lib/cart";
 import { MenuItemType, UserProfile } from "@/lib/types";
+import { router } from "expo-router";
 import {
     View,
     Text,
@@ -10,6 +11,12 @@ import {
     Alert,
     Modal,
     Button,
+    TextInput,
+    KeyboardAvoidingView,
+    TouchableWithoutFeedback,
+    Platform,
+    Keyboard,
+    ActivityIndicator,
 } from "react-native";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
@@ -19,6 +26,7 @@ export default function Cart() {
         items,
         addItem,
         removeItem,
+        setComment: setCartComment,
         total,
         totalItems,
         removeAllItems,
@@ -33,6 +41,7 @@ export default function Cart() {
     const [voucherModalVisible, setVoucherModalVisible] = useState(false);
     const [maxVouchers, setMaxVouchers] = useState(0);
     const [tempVouchersUsed, setTempVouchersUsed] = useState(0);
+    const [comment, setComment] = useState("");
 
     const priceFormat = new Intl.NumberFormat("en-NZ", {
         style: "currency",
@@ -124,284 +133,353 @@ export default function Cart() {
         setTempVouchersUsed(vouchersUsed);
     };
 
+    const handleSubmit = async () => {
+        setLoading(true);
+        try {
+            await setCartComment(comment);
+            router.push("/student/checkout");
+        } catch (error) {
+            Alert.alert("Failed to finalise order", `${error}`);
+            setLoading(false);
+        }
+    };
+
     return (
-        <View style={styles.body}>
-            <View
-                style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    flexDirection: "row",
-                    alignItems: "center",
-                    marginBottom: 8,
-                }}
-            >
-                <Heading size={1} style={{ width: "50%" }}>
-                    Your Cart
-                </Heading>
-                {totalItems > 0 && (
-                    <TouchableOpacity
-                        style={{ width: "50%" }}
-                        onPress={handleRemoveAllItems}
+        <KeyboardAvoidingView
+            style={styles.body}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            onPointerDown={Keyboard.dismiss}
+        >
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+                <View>
+                    <View
+                        style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            flexDirection: "row",
+                            alignItems: "center",
+                            marginBottom: 8,
+                        }}
                     >
-                        <Text style={{ textAlign: "right", color: "#d00" }}>
-                            Delete All Items
-                        </Text>
-                    </TouchableOpacity>
-                )}
-            </View>
-            {totalItems > 0 ? (
-                <>
-                    {items.map((restaurant) => {
-                        return (
-                            <View key={restaurant.id}>
-                                <Heading size={3}>{restaurant.name}</Heading>
-                                {restaurant.items.map((item) => {
-                                    return (
-                                        <View
-                                            style={{
-                                                backgroundColor: "#ddd",
-                                                display: "flex",
-                                                justifyContent: "flex-start",
-                                                alignItems: "center",
-                                                flexDirection: "row",
-                                                marginVertical: 8,
-                                            }}
-                                            key={item.id}
-                                        >
-                                            <View
-                                                style={{
-                                                    width: "75%",
-                                                    display: "flex",
-                                                    justifyContent:
-                                                        "flex-start",
-                                                    alignItems: "center",
-                                                    flexDirection: "row",
-                                                }}
-                                            >
-                                                <Image
-                                                    source={{
-                                                        uri: item.image_url,
-                                                    }}
-                                                    style={{
-                                                        width: 80,
-                                                        height: 80,
-                                                    }}
-                                                />
-                                                <View
-                                                    style={{
-                                                        padding: 8,
-                                                        flexDirection: "column",
-                                                        flexShrink: 1,
-                                                    }}
-                                                >
-                                                    <Heading size={4}>
-                                                        {item.name}
-                                                    </Heading>
-                                                    <Text>${item.price}</Text>
-                                                </View>
-                                            </View>
-                                            <View
-                                                style={{
-                                                    paddingEnd: 16,
-                                                    width: "25%",
-                                                }}
-                                            >
-                                                <View
-                                                    style={
-                                                        styles.quantityContainer
-                                                    }
-                                                >
-                                                    <TouchableOpacity
-                                                        style={
-                                                            styles.quantityButton
-                                                        }
-                                                        onPress={async () =>
-                                                            await handleRemoveItem(
-                                                                item
-                                                            )
-                                                        }
-                                                    >
-                                                        <Text
-                                                            style={
-                                                                styles.quantityButtonText
-                                                            }
-                                                        >
-                                                            -
-                                                        </Text>
-                                                    </TouchableOpacity>
-
-                                                    <Text
-                                                        style={
-                                                            styles.quantityText
-                                                        }
-                                                    >
-                                                        {item.quantity}
-                                                    </Text>
-
-                                                    <TouchableOpacity
-                                                        style={
-                                                            styles.quantityButton
-                                                        }
-                                                        onPress={async () =>
-                                                            await handleAddItem(
-                                                                item
-                                                            )
-                                                        }
-                                                    >
-                                                        <Text
-                                                            style={
-                                                                styles.quantityButtonText
-                                                            }
-                                                        >
-                                                            +
-                                                        </Text>
-                                                    </TouchableOpacity>
-                                                </View>
-                                                <Text
-                                                    style={{
-                                                        textAlign: "right",
-                                                    }}
-                                                >
-                                                    {priceFormat.format(
-                                                        item.price *
-                                                            item.quantity
-                                                    )}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                    );
-                                })}
-                            </View>
-                        );
-                    })}
-                    <Text>
-                        <Heading size={4}>Total items:</Heading> {totalItems}
-                    </Text>
-                    <Text>
-                        <Heading size={4}>Total:</Heading>{" "}
-                        {priceFormat.format(total)}
-                    </Text>
-
-                    {userProfile && userProfile.voucher_count > 0 && (
-                        <View style={styles.voucherSection}>
-                            <Text style={styles.voucherInfo}>
-                                You have {userProfile.voucher_count} voucher(s)
-                                available
-                            </Text>
+                        <Heading size={1} style={{ width: "50%" }}>
+                            Your Cart
+                        </Heading>
+                        {totalItems > 0 && (
                             <TouchableOpacity
-                                style={styles.voucherButton}
-                                onPress={handleOpenVoucherModal}
+                                style={{ width: "50%" }}
+                                onPress={handleRemoveAllItems}
                             >
-                                <Text style={styles.voucherButtonText}>
-                                    {vouchersUsed > 0
-                                        ? `${vouchersUsed} Voucher(s) Applied`
-                                        : "Use Vouchers"}
+                                <Text
+                                    style={{
+                                        textAlign: "right",
+                                        color: "#d00",
+                                    }}
+                                >
+                                    Delete All Items
                                 </Text>
                             </TouchableOpacity>
+                        )}
+                    </View>
+                    {totalItems > 0 ? (
+                        <>
+                            {items.map((restaurant) => {
+                                return (
+                                    <View key={restaurant.id}>
+                                        <Heading size={3}>
+                                            {restaurant.name}
+                                        </Heading>
+                                        {restaurant.items.map((item) => {
+                                            return (
+                                                <View
+                                                    style={{
+                                                        backgroundColor: "#ddd",
+                                                        display: "flex",
+                                                        justifyContent:
+                                                            "flex-start",
+                                                        alignItems: "center",
+                                                        flexDirection: "row",
+                                                        marginVertical: 8,
+                                                    }}
+                                                    key={item.id}
+                                                >
+                                                    <View
+                                                        style={{
+                                                            width: "75%",
+                                                            display: "flex",
+                                                            justifyContent:
+                                                                "flex-start",
+                                                            alignItems:
+                                                                "center",
+                                                            flexDirection:
+                                                                "row",
+                                                        }}
+                                                    >
+                                                        <Image
+                                                            source={{
+                                                                uri: item.image_url,
+                                                            }}
+                                                            style={{
+                                                                width: 80,
+                                                                height: 80,
+                                                            }}
+                                                        />
+                                                        <View
+                                                            style={{
+                                                                padding: 8,
+                                                                flexDirection:
+                                                                    "column",
+                                                                flexShrink: 1,
+                                                            }}
+                                                        >
+                                                            <Heading size={4}>
+                                                                {item.name}
+                                                            </Heading>
+                                                            <Text>
+                                                                ${item.price}
+                                                            </Text>
+                                                        </View>
+                                                    </View>
+                                                    <View
+                                                        style={{
+                                                            paddingEnd: 16,
+                                                            width: "25%",
+                                                        }}
+                                                    >
+                                                        <View
+                                                            style={
+                                                                styles.quantityContainer
+                                                            }
+                                                        >
+                                                            <TouchableOpacity
+                                                                style={
+                                                                    styles.quantityButton
+                                                                }
+                                                                onPress={async () =>
+                                                                    await handleRemoveItem(
+                                                                        item
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Text
+                                                                    style={
+                                                                        styles.quantityButtonText
+                                                                    }
+                                                                >
+                                                                    -
+                                                                </Text>
+                                                            </TouchableOpacity>
 
-                            {vouchersUsed > 0 && (
-                                <View style={styles.discountInfo}>
-                                    <Text style={styles.discountText}>
-                                        Discount:{" "}
-                                        {priceFormat.format(-discountAmount)}
+                                                            <Text
+                                                                style={
+                                                                    styles.quantityText
+                                                                }
+                                                            >
+                                                                {item.quantity}
+                                                            </Text>
+
+                                                            <TouchableOpacity
+                                                                style={
+                                                                    styles.quantityButton
+                                                                }
+                                                                onPress={async () =>
+                                                                    await handleAddItem(
+                                                                        item
+                                                                    )
+                                                                }
+                                                            >
+                                                                <Text
+                                                                    style={
+                                                                        styles.quantityButtonText
+                                                                    }
+                                                                >
+                                                                    +
+                                                                </Text>
+                                                            </TouchableOpacity>
+                                                        </View>
+                                                        <Text
+                                                            style={{
+                                                                textAlign:
+                                                                    "right",
+                                                            }}
+                                                        >
+                                                            {priceFormat.format(
+                                                                item.price *
+                                                                    item.quantity
+                                                            )}
+                                                        </Text>
+                                                    </View>
+                                                </View>
+                                            );
+                                        })}
+                                    </View>
+                                );
+                            })}
+                            <Text>
+                                <Heading size={4}>Total items:</Heading>{" "}
+                                {totalItems}
+                            </Text>
+                            <Text>
+                                <Heading size={4}>Total:</Heading>{" "}
+                                {priceFormat.format(total)}
+                            </Text>
+                            {userProfile && userProfile.voucher_count > 0 && (
+                                <View style={styles.voucherSection}>
+                                    <Text style={styles.voucherInfo}>
+                                        You have {userProfile.voucher_count}{" "}
+                                        voucher(s) available
                                     </Text>
-                                    <Text style={styles.finalTotalText}>
-                                        Final Total:{" "}
-                                        {priceFormat.format(finalTotal)}
-                                    </Text>
+                                    <TouchableOpacity
+                                        style={styles.voucherButton}
+                                        onPress={handleOpenVoucherModal}
+                                    >
+                                        <Text style={styles.voucherButtonText}>
+                                            {vouchersUsed > 0
+                                                ? `${vouchersUsed} Voucher(s) Applied`
+                                                : "Use Vouchers"}
+                                        </Text>
+                                    </TouchableOpacity>
+
+                                    {vouchersUsed > 0 && (
+                                        <View style={styles.discountInfo}>
+                                            <Text style={styles.discountText}>
+                                                Discount:{" "}
+                                                {priceFormat.format(
+                                                    -discountAmount
+                                                )}
+                                            </Text>
+                                            <Text style={styles.finalTotalText}>
+                                                Final Total:{" "}
+                                                {priceFormat.format(finalTotal)}
+                                            </Text>
+                                        </View>
+                                    )}
                                 </View>
                             )}
-                        </View>
-                    )}
-
-                    <TouchableOpacity style={styles.completeOrderButton}>
-                        <Text style={styles.completeOrderButtonText}>
-                            Complete Order
-                        </Text>
-                    </TouchableOpacity>
-
-                    {/* Voucher Selection Modal */}
-                    <Modal
-                        animationType="slide"
-                        transparent={true}
-                        visible={voucherModalVisible}
-                        onRequestClose={() => setVoucherModalVisible(false)}
-                    >
-                        <View style={styles.modalContainer}>
-                            <View style={styles.modalContent}>
-                                <Text style={styles.modalTitle}>
-                                    Use Vouchers
-                                </Text>
-
-                                <Text style={styles.modalText}>
-                                    You have {userProfile?.voucher_count || 0}{" "}
-                                    voucher(s) available. Each voucher gives you
-                                    $15 off your order.
-                                </Text>
-
-                                <View style={styles.voucherSelector}>
-                                    <Button
-                                        title="-"
-                                        onPress={() =>
-                                            setTempVouchersUsed(
-                                                Math.max(
-                                                    0,
-                                                    tempVouchersUsed - 1
-                                                )
-                                            )
-                                        }
-                                        disabled={tempVouchersUsed <= 0}
-                                    />
-                                    <Text style={styles.voucherNumber}>
-                                        {tempVouchersUsed}
+                            <Heading size={3} style={{ marginTop: 16 }}>
+                                Order Comments:
+                            </Heading>
+                            <TextInput
+                                style={{
+                                    backgroundColor: "white",
+                                    borderColor: "black",
+                                    borderWidth: 1,
+                                    padding: 10,
+                                }}
+                                placeholder="Put any comments here..."
+                                editable
+                                multiline
+                                numberOfLines={3}
+                                maxLength={250}
+                                onChangeText={(text) => setComment(text)}
+                                value={comment}
+                            ></TextInput>
+                            {!loading ? (
+                                <TouchableOpacity
+                                    style={styles.completeOrderButton}
+                                    onPress={handleSubmit}
+                                >
+                                    <Text
+                                        style={styles.completeOrderButtonText}
+                                    >
+                                        Complete Order
                                     </Text>
-                                    <Button
-                                        title="+"
-                                        onPress={() =>
-                                            setTempVouchersUsed(
-                                                Math.min(
-                                                    maxVouchers,
-                                                    tempVouchersUsed + 1
-                                                )
-                                            )
-                                        }
-                                        disabled={
-                                            tempVouchersUsed >= maxVouchers ||
-                                            tempVouchersUsed * 15 >= total
-                                        }
-                                    />
-                                </View>
+                                </TouchableOpacity>
+                            ) : (
+                                <ActivityIndicator />
+                            )}
 
-                                <Text style={styles.costText}>
-                                    Discount: ${tempVouchersUsed * 15}
-                                </Text>
-                                <Text style={styles.costText}>
-                                    New Total: $
-                                    {Math.max(0, total - tempVouchersUsed * 15)}
-                                </Text>
+                            {/* Voucher Selection Modal */}
+                            <Modal
+                                animationType="slide"
+                                transparent={true}
+                                visible={voucherModalVisible}
+                                onRequestClose={() =>
+                                    setVoucherModalVisible(false)
+                                }
+                            >
+                                <View style={styles.modalContainer}>
+                                    <View style={styles.modalContent}>
+                                        <Text style={styles.modalTitle}>
+                                            Use Vouchers
+                                        </Text>
 
-                                <View style={styles.modalButtons}>
-                                    <Button
-                                        title="Cancel"
-                                        onPress={handleCancelVouchers}
-                                    />
-                                    <Button
-                                        title="Apply"
-                                        onPress={handleApplyVouchers}
-                                    />
+                                        <Text style={styles.modalText}>
+                                            You have{" "}
+                                            {userProfile?.voucher_count || 0}{" "}
+                                            voucher(s) available. Each voucher
+                                            gives you $15 off your order.
+                                        </Text>
+
+                                        <View style={styles.voucherSelector}>
+                                            <Button
+                                                title="-"
+                                                onPress={() =>
+                                                    setTempVouchersUsed(
+                                                        Math.max(
+                                                            0,
+                                                            tempVouchersUsed - 1
+                                                        )
+                                                    )
+                                                }
+                                                disabled={tempVouchersUsed <= 0}
+                                            />
+                                            <Text style={styles.voucherNumber}>
+                                                {tempVouchersUsed}
+                                            </Text>
+                                            <Button
+                                                title="+"
+                                                onPress={() =>
+                                                    setTempVouchersUsed(
+                                                        Math.min(
+                                                            maxVouchers,
+                                                            tempVouchersUsed + 1
+                                                        )
+                                                    )
+                                                }
+                                                disabled={
+                                                    tempVouchersUsed >=
+                                                        maxVouchers ||
+                                                    tempVouchersUsed * 15 >=
+                                                        total
+                                                }
+                                            />
+                                        </View>
+
+                                        <Text style={styles.costText}>
+                                            Discount: ${tempVouchersUsed * 15}
+                                        </Text>
+                                        <Text style={styles.costText}>
+                                            New Total: $
+                                            {Math.max(
+                                                0,
+                                                total - tempVouchersUsed * 15
+                                            )}
+                                        </Text>
+
+                                        <View style={styles.modalButtons}>
+                                            <Button
+                                                title="Cancel"
+                                                onPress={handleCancelVouchers}
+                                            />
+                                            <Button
+                                                title="Apply"
+                                                onPress={handleApplyVouchers}
+                                            />
+                                        </View>
+                                    </View>
                                 </View>
-                            </View>
-                        </View>
-                    </Modal>
-                </>
-            ) : (
-                <>
-                    <Text style={{ textAlign: "center" }}>
-                        Your cart is empty.
-                    </Text>
-                </>
-            )}
-        </View>
+                            </Modal>
+                        </>
+                    ) : (
+                        <>
+                            <Text style={{ textAlign: "center" }}>
+                                Your cart is empty.
+                            </Text>
+                        </>
+                    )}
+                </View>
+            </TouchableWithoutFeedback>
+        </KeyboardAvoidingView>
     );
 }
 
