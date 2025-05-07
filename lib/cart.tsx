@@ -539,7 +539,7 @@ export class Cart {
             this.#paid_at = new Date(now);
 
             // Clear cart items after completion
-            await this.removeAllItems();
+            
         } catch (error) {
             console.error("Unexpected error during completeOrder:", error);
             throw error; // Re-throw to let calling code handle
