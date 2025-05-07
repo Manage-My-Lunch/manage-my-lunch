@@ -2,7 +2,6 @@ import Heading from "@/components/heading";
 import { useCart } from "@/lib/cart";
 import { supabase } from "@/lib/supabase";
 import { Picker } from "@react-native-picker/picker";
-import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
     Text,
@@ -133,8 +132,9 @@ export default function Checkout() {
     }, []);
 
     const handlePay = async () => {
+        setLoading(true);
+        await completeOrder();
         setLoading(false);
-        await completeOrder(pickupWindows[pickupWindow].id);
     };
 
     return (
