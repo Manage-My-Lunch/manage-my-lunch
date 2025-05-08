@@ -51,6 +51,7 @@ function OrderHistoryScreen() {
       .from("order")
       .select(`*, pickup_window (open, close)`)
       .eq("user", user.id)
+      .not('paid_at', 'is', null)  
       .limit(100);
 
     if (error) {
