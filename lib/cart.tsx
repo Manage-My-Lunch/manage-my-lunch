@@ -537,8 +537,6 @@ export class Cart {
             }
 
             this.#paid_at = new Date(now);
-
-            // Clear cart items after completion
             
         } catch (error) {
             console.error("Unexpected error during completeOrder:", error);
@@ -661,10 +659,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     const completeOrder = async () => {
         await cart.completeOrder();
-        setCart(cart);
-        setItems(cart.items);
-        setTotal(cart.total);
-        setTotalItems(cart.totalItems);
+        const newCart = await Cart.Init();
+        setCart(newCart);
+        setItems(newCart.items);
+        setTotalItems(newCart.totalItems);
+        setTotal(newCart.total);
+        setFinalTotal(newCart.total);
     };
 
     return (
