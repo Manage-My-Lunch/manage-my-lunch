@@ -424,7 +424,7 @@ export class Cart {
         if (error) throw error;
     };
 
-    public async completeOrder() {
+    public async completeOrder(pickupWindowId: string) {
         try {
             // Track processed restaurant IDs to avoid duplicate updates
             const processedRestaurants = new Set<string>();
@@ -525,7 +525,7 @@ export class Cart {
 
             const { error: completeOrderError } = await supabase
                 .from("order")
-                .update({ paid_at: now, updated_at: now })
+                .update({ paid_at: now, updated_at: now, pickup_window: pickupWindowId, })
                 .eq("id", this.#id);
 
             if (completeOrderError) {
@@ -535,8 +535,6 @@ export class Cart {
                 );
                 throw completeOrderError;
             }
-
-            this.#paid_at = new Date(now);
             
         } catch (error) {
             console.error("Unexpected error during completeOrder:", error);
@@ -565,7 +563,7 @@ const CartContext = createContext<
           setVouchersUsed: (count: number) => void;
           discountAmount: number;
           finalTotal: number;
-          completeOrder: () => void;
+          completeOrder: (pickupWindowId: string) => Promise<void>;
       }
     | undefined
 >(undefined);
@@ -657,8 +655,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         await cart.setComment(comment);
     };
 
-    const completeOrder = async () => {
-        await cart.completeOrder();
+    const completeOrder = async (pickupWindowId: string) => {
+        await cart.completeOrder(pickupWindowId);
         const newCart = await Cart.Init();
         setCart(newCart);
         setItems(newCart.items);
