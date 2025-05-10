@@ -4,6 +4,7 @@ import withRoleProtection from "@/components/withRoleProtection";
 import { supabase } from "@/lib/supabase";
 import alert from "@/components/alert";
 import { MenuItemType } from "@/lib/types";
+import CustomButton from "@/components/customButton";
 
 type Order = {
   id: string;
@@ -122,8 +123,9 @@ function OrderHistoryScreen() {
   const renderOrderItem = ({ item }: { item: Order }) => {
     const date = new Date(item.pickup_window?.open).toLocaleDateString();
     let status = "Pending";
-    if (item.completed_at) status = "Completed";
-    else if (item.delivered_at || item.collected_at) status = "Delivered";
+    if (item.completed_at || item.collected_at) status = "Completed";
+    else if (item.ready_at) status = "Ready for Delivery";
+    else if (item.delivered_at) status = "Ready for Pickup";
     else if (item.accepted_at) status = "Accepted";
 
     return (
@@ -131,10 +133,12 @@ function OrderHistoryScreen() {
         onPress={() => onSelectOrder(item)}
         style={styles.orderItemContainer}
       >
-        <Text style={styles.orderItemTitle}>Order #{item.id}</Text>
-        <Text>Date: {date}</Text>
-        <Text>Total: ${item.total_cost.toFixed(2)}</Text>
-        <Text>Status: {status}</Text>
+        <Text style={styles.orderItemTitle}>Date: {date}</Text>
+        <View style={styles.orderDetails}>
+          <Text style={styles.orderInfo}>{item.total_items} {item.total_items > 1 ? 'items' : 'item'} </Text>
+          <Text style={styles.orderInfo}>Total: ${item.total_cost.toFixed(2)}</Text>
+          <Text style={styles.orderInfo}>Status: {status}</Text>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -150,15 +154,15 @@ function OrderHistoryScreen() {
       >
         <ScrollView style={styles.modalContent}>
           <Text style={styles.modalTitle}>Order Details</Text>
-          <Text>Order ID: {selectedOrder.id}</Text>
-          <Text>
+          <Text style={styles.modalInfo}>Order ID: {selectedOrder.id}</Text>
+          <Text style={styles.modalInfo}>
             Date: {new Date(selectedOrder.pickup_window?.open).toLocaleDateString('en-NZ')}
           </Text>
-          <Text>
+          <Text style={styles.modalInfo}>
             Pickup Window: {new Date(selectedOrder.pickup_window?.open).toLocaleTimeString('en-NZ', { hour: '2-digit', minute: '2-digit' })} - {new Date(selectedOrder.pickup_window?.close).toLocaleTimeString('en-NZ', { hour: '2-digit', minute: '2-digit' })}
           </Text>
-          <Text>Total: ${selectedOrder.total_cost.toFixed(2)}</Text>
-          <Text>Comments: {selectedOrder.comments || "None"}</Text>
+          <Text style={styles.modalInfo}>Total: ${selectedOrder.total_cost.toFixed(2)}</Text>
+          <Text style={styles.modalInfo}>Comments: {selectedOrder.comments || "None"}</Text>
 
           <Text style={styles.modalSectionTitle}>Items:</Text>
           {Object.entries(groupedItems).map(([restaurant, items]) => (
@@ -180,12 +184,10 @@ function OrderHistoryScreen() {
             </View>
           ))}
 
-          <TouchableOpacity
+          <CustomButton
+            title="Close"
             onPress={() => setIsModalVisible(false)}
-            style={styles.closeButton}
-          >
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
+          />
         </ScrollView>
       </Modal>
     );
@@ -200,6 +202,7 @@ function OrderHistoryScreen() {
   }
 
   return (
+    <View style={styles.container}>
     <FlatList
       data={orders}
       keyExtractor={(item) => item.id}
@@ -207,48 +210,106 @@ function OrderHistoryScreen() {
       contentContainerStyle={styles.scrollContainer}
       ListFooterComponent={renderOrderDetails()}
     />
+    </View>
   );
 }
-
 const styles = StyleSheet.create({
-  orderItemContainer: {
+  // Layout containers
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  scrollContainer: {
     padding: 16,
-    borderBottomWidth: 1,
-    borderColor: "#ccc",
-    backgroundColor: "#fff",
-    marginVertical: 4,
+    paddingBottom: 32,
+  },
+
+  // Loading state
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+    minHeight: 300,
+  },
+
+  // Order card
+  orderItemContainer: {
+    backgroundColor: '#fff',
     borderRadius: 8,
-    width: "90%",
-    alignSelf: "center",
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+    width: '100%',
   },
   orderItemTitle: {
-    fontWeight: "bold",
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 4,
   },
+  orderDetails: {
+    marginTop: 12,
+  },
+  orderInfo: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+
+  // Modal styles
   modalContent: {
-    marginTop: 40,
+    flex: 1,
+    backgroundColor: '#f5f5f5',
     padding: 16,
-    backgroundColor: "#f9f9f9",
   },
   modalTitle: {
+    marginTop: 50,
     fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 8,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#333',
   },
   modalSectionTitle: {
-    marginTop: 12,
-    fontWeight: "bold",
+    marginTop: 16,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
   },
+  modalInfo: {
+    fontSize: 14,
+    color: '#333',
+    marginBottom: 4,
+  },
+
+  // Restaurant grouping
   restaurantContainer: {
     marginVertical: 12,
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   restaurantTitle: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
   },
+
+  // Order items inside modal
   orderItemRow: {
-    flexDirection: "row",
+    flexDirection: 'row',
     marginVertical: 8,
-    alignItems: "center",
+    alignItems: 'center',
   },
   itemImage: {
     width: 50,
@@ -260,25 +321,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   itemTitle: {
-    fontWeight: "bold",
-  },
-  closeButton: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: "#007AFF",
-    borderRadius: 8,
-  },
-  closeButtonText: {
-    color: "#fff",
-    textAlign: "center",
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  scrollContainer: {
-    paddingVertical: 16,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 2,
   },
 });
 
