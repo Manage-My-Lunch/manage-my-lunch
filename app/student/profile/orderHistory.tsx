@@ -6,6 +6,12 @@ import alert from "@/components/alert";
 import { MenuItemType } from "@/lib/types";
 import CustomButton from "@/components/customButton";
 
+type Restaurant =  {
+  id: string;
+  name: string;
+  image_url: string;
+}
+
 type Order = {
   id: string;
   created_at: string;
@@ -25,6 +31,7 @@ type Order = {
   comments: string;
   points_redeemed: number;
   points_earned: number;
+  restaurants: Restaurant[];
 };
 
 type OrderItem = MenuItemType & { quantity: number; restaurant: string; image_url: string; line_total: number };
@@ -71,14 +78,24 @@ function OrderHistoryScreen() {
       .eq("user", user.id)
       .not('paid_at', 'is', null)  
   
-    setLoading(false);
-  
     if (error) {
       console.error("Fetch error", error);
       return []; // Return an empty array on error.
     }
+
+    // For each order, fetch its restaurant info
+    const ordersWithRestaurants = await Promise.all(
+      data.map(async (order) => {
+        const restaurants = await fetchRestaurantsForOrder(order.id);
+        return {
+          ...order,
+          restaurants, // Attach fetched restaurants array to the order
+        };
+      })
+    );
   
-    return data; // Return fetched data here.
+    setLoading(false);
+    return ordersWithRestaurants; // Return fetched data here.
   };
 
   const sortOrders = (orders: Order[]) => {
@@ -148,6 +165,38 @@ function OrderHistoryScreen() {
     setIsModalVisible(true);
   }, []);
 
+  const fetchRestaurantsForOrder = async (orderId: string) => {
+    // Get order items for this order to find restaurant IDs
+    const { data: itemsData, error: itemsError } = await supabase
+      .from("order_item")
+      .select(`
+        item (
+          restaurant ( id, name, image_url )
+        )
+      `)
+      .eq('"order"', orderId);
+  
+    if (itemsError) {
+      console.error("Failed to fetch order items for restaurant info", itemsError);
+      return [];
+    }
+  
+    // Extract restaurant info
+    const restaurantsRaw = itemsData
+      .map((row: any) => row.item?.restaurant)
+      .filter((r: any) => r);  // filter out nulls just in case
+  
+    // Ensure only unique restaurant ID
+    const restaurantMap: Record<string, Restaurant> = {};
+    restaurantsRaw.forEach((r: Restaurant) => {
+      if (!restaurantMap[r.id]) {
+        restaurantMap[r.id] = r;
+      }
+    });
+  
+    return Object.values(restaurantMap);
+  };
+
   const onSelectOrder = (order: Order) => {
     setSelectedOrder(order);
     fetchOrderItems(order.id);
@@ -179,6 +228,13 @@ function OrderHistoryScreen() {
         style={styles.orderItemContainer}
       >
         <Text style={styles.orderItemTitle}>Date: {date}</Text>
+        {/* display restaurant name and image urls */}
+        {item.restaurants?.map((restaurant) => (
+        <View key={restaurant.id} style={styles.restaurantRow}>
+          <Image source={{ uri: restaurant.image_url }} style={styles.restaurantImage} />
+          <Text style={styles.restaurantName}>{restaurant.name}</Text>
+        </View>
+      ))}
         <View style={styles.orderDetails}>
           <Text style={styles.orderInfo}>{item.total_items} {item.total_items > 1 ? 'items' : 'item'} </Text>
           <Text style={styles.orderInfo}>Total: ${item.total_cost.toFixed(2)}</Text>
@@ -362,6 +418,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 4,
+  },
+  restaurantRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  restaurantImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  restaurantName: {
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 
   // Modal styles
