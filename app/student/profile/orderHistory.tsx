@@ -53,7 +53,7 @@ function OrderHistoryScreen() {
         if (fetchedOrders) {
           setAllOrders(fetchedOrders);  // Save all fetched orders
           const updatedOrders = filterOrders(sortOrders(fetchedOrders));
-          setOrders(updatedOrders);  // Show ALL filtered & sorted orders (no slicing!)
+          setOrders(updatedOrders);  // Show ALL filtered & sorted orders
         }
       } catch (error) {
         console.error('Error fetching and filtering orders:', error);
@@ -119,13 +119,13 @@ function OrderHistoryScreen() {
   // Update sort and filter options
   const handleSortChange = (option: string) => {
     setSortOption(option); 
-    const updatedOrders = filterOrders(sortOrders(allOrders || []));  // Apply sorting and filtering immediately
+    const updatedOrders = filterOrders(sortOrders(allOrders || []));  // Apply sorting and filtering
     setOrders(updatedOrders); // Update orders to reflect the changes
   };
 
   const handleFilterChange = (option: string) => {
     setFilterOption(option);
-    const updatedOrders = filterOrders(sortOrders(allOrders || []));  // Apply filtering and sorting immediately
+    const updatedOrders = filterOrders(sortOrders(allOrders || []));  // Apply filtering and sorting
     setOrders(updatedOrders); // Update orders to reflect the changes
   };
 
@@ -218,8 +218,8 @@ function OrderHistoryScreen() {
     let status = "Pending";
     if (item.cancelled_at) status = "Cancelled";
     else if (item.completed_at || item.collected_at) status = "Completed";
-    else if (item.ready_at) status = "Ready for Delivery";
     else if (item.delivered_at) status = "Ready for Pickup";
+    else if (item.ready_at) status = "Ready for Delivery";
     else if (item.accepted_at) status = "Accepted";
 
     return (
