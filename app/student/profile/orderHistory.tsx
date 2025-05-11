@@ -18,6 +18,7 @@ type Order = {
   delivered_at: string | null;
   collected_at: string | null;
   completed_at: string | null;
+  cancelled_at: string | null;
   total_cost: number;
   total_items: number;
   pickup_window: { open: string; close: string };
@@ -34,10 +35,26 @@ function OrderHistoryScreen() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [allOrders, setAllOrders] = useState<Order[] | null>(null);
+  const [sortOption, setSortOption] = useState("newest");
+  const [filterOption, setFilterOption] = useState("all");
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    const fetchAndFilterOrders = async () => {
+      try {
+        const fetchedOrders = await fetchOrders();
+        if (fetchedOrders) {
+          setAllOrders(fetchedOrders);  // Save all fetched orders
+          const updatedOrders = filterOrders(sortOrders(fetchedOrders));
+          setOrders(updatedOrders);  // Show ALL filtered & sorted orders (no slicing!)
+        }
+      } catch (error) {
+        console.error('Error fetching and filtering orders:', error);
+      }
+    };
+  
+    fetchAndFilterOrders();
+  }, [sortOption, filterOption]);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -45,27 +62,54 @@ function OrderHistoryScreen() {
     if (userError || !user) {
       alert("Error fetching user", userError?.message || "User not found.");
       setLoading(false);
-      return;
+      return []; // Return an empty array instead of void.
     }
-
+  
     const { data, error } = await supabase
       .from("order")
       .select(`*, pickup_window (open, close)`)
       .eq("user", user.id)
       .not('paid_at', 'is', null)  
-      .limit(100);
-
+  
+    setLoading(false);
+  
     if (error) {
       console.error("Fetch error", error);
-    } else {
-      const sorted = (data || []).sort((a, b) => {
-        const aTime = new Date(a.pickup_window?.open || a.created_at).getTime();
-        const bTime = new Date(b.pickup_window?.open || b.created_at).getTime();
-        return bTime - aTime;
-      });
-      setOrders(sorted as Order[]);
+      return []; // Return an empty array on error.
     }
-    setLoading(false);
+  
+    return data; // Return fetched data here.
+  };
+
+  const sortOrders = (orders: Order[]) => {
+    if (sortOption === "newest") {
+      return orders.sort((a, b) => new Date(b.pickup_window.open).getTime() - new Date(a.pickup_window.open).getTime());
+    } else if (sortOption === "oldest") {
+      return orders.sort((a, b) => new Date(a.pickup_window.open).getTime() - new Date(b.pickup_window.open).getTime());
+    }
+    return orders;
+  };
+
+  const filterOrders = (orders: Order[]) => {
+    if (filterOption === "all") return orders;
+    return orders.filter((order) => {
+      if (filterOption === "cancelled") return order.cancelled_at != null;
+      if (filterOption === "completed") return order.completed_at != null || order.collected_at != null;
+      return true;
+    });
+  };
+
+  // Update sort and filter options
+  const handleSortChange = (option: string) => {
+    setSortOption(option); 
+    const updatedOrders = filterOrders(sortOrders(allOrders || []));  // Apply sorting and filtering immediately
+    setOrders(updatedOrders); // Update orders to reflect the changes
+  };
+
+  const handleFilterChange = (option: string) => {
+    setFilterOption(option);
+    const updatedOrders = filterOrders(sortOrders(allOrders || []));  // Apply filtering and sorting immediately
+    setOrders(updatedOrders); // Update orders to reflect the changes
   };
 
   const fetchOrderItems = useCallback(async (orderId: string) => {
@@ -82,8 +126,6 @@ function OrderHistoryScreen() {
           category,
           description,
           restaurant ( id, name ),
-          created_at,
-          updated_at
         )
       `)
       .eq('"order"', orderId);
@@ -123,7 +165,8 @@ function OrderHistoryScreen() {
   const renderOrderItem = ({ item }: { item: Order }) => {
     const date = new Date(item.pickup_window?.open).toLocaleDateString();
     let status = "Pending";
-    if (item.completed_at || item.collected_at) status = "Completed";
+    if (item.cancelled_at) status = "Cancelled";
+    else if (item.completed_at || item.collected_at) status = "Completed";
     else if (item.ready_at) status = "Ready for Delivery";
     else if (item.delivered_at) status = "Ready for Pickup";
     else if (item.accepted_at) status = "Accepted";
@@ -203,15 +246,73 @@ function OrderHistoryScreen() {
 
   return (
     <View style={styles.container}>
-    <FlatList
-      data={orders}
-      keyExtractor={(item) => item.id}
-      renderItem={renderOrderItem}
-      contentContainerStyle={styles.scrollContainer}
-      ListFooterComponent={renderOrderDetails()}
-    />
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" />
+        </View>
+      ) : (
+        <>
+          {allOrders?.length === 0 ? (
+            // If there are no orders at all
+            <Text style={styles.noOrdersMessage}>You have no orders yet.</Text>
+          ) : (
+            <>
+              <View style={styles.filterContainer}>
+                <View style={styles.optionsRow}>
+                <Text style={styles.sectionTitle}>Sort by:</Text>
+                  <TouchableOpacity
+                    style={[styles.optionButton, sortOption === "newest" && styles.optionButtonActive]}
+                    onPress={() => handleSortChange("newest")}
+                  >
+                    <Text style={[styles.optionText, sortOption === "newest" && styles.optionTextActive]}>Newest</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.optionButton, sortOption === "oldest" && styles.optionButtonActive]}
+                    onPress={() => handleSortChange("oldest")}
+                  >
+                    <Text style={[styles.optionText, sortOption === "oldest" && styles.optionTextActive]}>Oldest</Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View style={styles.optionsRow}>
+                <Text style={styles.sectionTitle}>Filter by:</Text>
+                  <TouchableOpacity
+                    style={[styles.optionButton, filterOption === "all" && styles.optionButtonActive]}
+                    onPress={() => handleFilterChange("all")}
+                  >
+                    <Text style={[styles.optionText, filterOption === "all" && styles.optionTextActive]}>All</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.optionButton, filterOption === "completed" && styles.optionButtonActive]}
+                    onPress={() => handleFilterChange("completed")}
+                  >
+                    <Text style={[styles.optionText, filterOption === "completed" && styles.optionTextActive]}>Completed</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.optionButton, filterOption === "cancelled" && styles.optionButtonActive]}
+                    onPress={() => handleFilterChange("cancelled")}
+                  >
+                    <Text style={[styles.optionText, filterOption === "cancelled" && styles.optionTextActive]}>Cancelled</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+              {orders.length === 0 && filterOption !== "all" ? (
+                <Text style={styles.noOrdersMessage}>No orders match the selected filter.</Text>
+              ) : (
+                <FlatList
+                  data={orders}
+                  keyExtractor={(item) => item.id}
+                  renderItem={renderOrderItem}
+                  contentContainerStyle={styles.scrollContainer}
+                  ListFooterComponent={renderOrderDetails()}
+                />
+              )}
+            </>
+          )}
+        </>
+      )}
     </View>
-  );
+  );   
 }
 const styles = StyleSheet.create({
   // Layout containers
@@ -325,6 +426,58 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#333',
     marginBottom: 2,
+  },
+
+  // Filter and sorting 
+  filterContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    padding: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+  },
+  optionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  optionButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    marginRight: 8,
+    backgroundColor: '#f9f9f9',
+  },
+  optionButtonActive: {
+    backgroundColor: '#00BFA6',
+    borderColor: '#00BFA6',
+  },
+  optionText: {
+    color: '#333',
+    fontSize: 14,
+  },
+  optionTextActive: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+
+  // Other styles...
+  noOrdersMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
 
