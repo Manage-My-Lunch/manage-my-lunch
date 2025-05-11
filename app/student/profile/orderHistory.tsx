@@ -126,6 +126,8 @@ function OrderHistoryScreen() {
           category,
           description,
           restaurant ( id, name ),
+          created_at,
+          updated_at
         )
       `)
       .eq('"order"', orderId);
