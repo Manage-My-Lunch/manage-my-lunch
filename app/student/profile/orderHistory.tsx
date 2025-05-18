@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Modal, Image, ScrollView, StyleSheet } from "react-native";
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Modal, Image, ScrollView, StyleSheet, TextInput } from "react-native";
 import withRoleProtection from "@/components/withRoleProtection";
 import { supabase } from "@/lib/supabase";
 import alert from "@/components/alert";
 import { MenuItemType } from "@/lib/types";
 import CustomButton from "@/components/customButton";
+import StarRating from "@/components/student/review/StarRating";
 
 type Restaurant =  {
   id: string;
@@ -45,6 +46,31 @@ function OrderHistoryScreen() {
   const [allOrders, setAllOrders] = useState<Order[] | null>(null);
   const [sortOption, setSortOption] = useState("newest");
   const [filterOption, setFilterOption] = useState("all");
+  
+  // Add new state for review functionality
+  const [userReviews, setUserReviews] = useState<Record<string, { rating: number; comment: string }>>({});
+  const [newRating, setNewRating] = useState<number>(5);
+  const [newComment, setNewComment] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Add function to fetch user reviews
+  const fetchUserReviews = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+    
+    const { data } = await supabase
+      .from('review')
+      .select('order_id, rating, comment')
+      .eq('user', user.id);
+      
+    if (data) {
+      const reviewsMap = data.reduce((acc, review) => {
+        acc[review.order_id] = { rating: review.rating, comment: review.comment };
+        return acc;
+      }, {});
+      setUserReviews(reviewsMap);
+    }
+  }, []);
 
   useEffect(() => {
     const fetchAndFilterOrders = async () => {
@@ -61,7 +87,8 @@ function OrderHistoryScreen() {
     };
   
     fetchAndFilterOrders();
-  }, [sortOption, filterOption]);
+    fetchUserReviews(); // Add this line to fetch reviews
+  }, [sortOption, filterOption, fetchUserReviews]);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -244,8 +271,90 @@ function OrderHistoryScreen() {
     );
   };
 
+  // Add submit review function
+  const submitReview = async (orderId: string, restaurantId: string) => {
+    try {
+      setIsSubmitting(true);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      // Check if the order exists and is completed
+      const { data: orderData, error: orderError } = await supabase
+        .from('order')
+        .select('completed_at, collected_at')
+        .eq('id', orderId)
+        .single();
+        
+      if (orderError) {
+        console.error('Error checking order:', orderError);
+        alert('Review Error', 'Could not verify order status');
+        return;
+      }
+      
+      if (!orderData?.completed_at && !orderData?.collected_at) {
+        alert('Review Error', 'You can only review completed orders');
+        return;
+      }
+      
+      // Check if a review already exists
+      const { data: existingReview, error: reviewCheckError } = await supabase
+        .from('review')
+        .select('id')
+        .eq('order_id', orderId)
+        .eq('user', user.id)
+        .eq('restaurant', restaurantId);
+        
+      if (reviewCheckError) {
+        console.error('Error checking existing review:', reviewCheckError);
+      } else if (existingReview && existingReview.length > 0) {
+        alert('Review Error', 'You have already reviewed this order');
+        return;
+      }
+      
+      // Insert the new review
+      const { error: insertError } = await supabase
+        .from('review')
+        .insert({
+          order_id: orderId,
+          user: user.id,
+          restaurant: restaurantId,
+          rating: newRating,
+          comment: newComment
+        });
+        
+      if (insertError) {
+        console.error('Error submitting review:', insertError);
+        if (insertError.code === '23505') { // Unique constraint violation
+          alert('Review Error', 'You have already reviewed this order');
+        } else {
+          throw insertError;
+        }
+        return;
+      }
+      
+      // Update local state
+      setUserReviews(prev => ({
+        ...prev,
+        [orderId]: { rating: newRating, comment: newComment }
+      }));
+      
+      setNewComment('');
+      setNewRating(5);
+      alert('Review Submitted', 'Thank you for your review!');
+    } catch (error) {
+      console.error('Failed to submit review:', error);
+      alert('Review Error', 'Failed to submit review. Please try again later.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const renderOrderDetails = () => {
     if (!selectedOrder) return null;
+    
+    const hasReview = userReviews[selectedOrder.id];
+    const restaurant = selectedOrder.restaurants && selectedOrder.restaurants[0];
+    const isOrderCompleted = selectedOrder.completed_at || selectedOrder.collected_at;
 
     return (
       <Modal
@@ -284,6 +393,43 @@ function OrderHistoryScreen() {
               ))}
             </View>
           ))}
+          
+          {/* Add restaurant review section */}
+          {isOrderCompleted && restaurant && (
+            <>
+              <View style={styles.divider} />
+              <Text style={styles.modalSectionTitle}>Restaurant Review</Text>
+              
+              {hasReview ? (
+                <View style={styles.reviewContainer}>
+                  <Text style={styles.reviewTitle}>Your Rating:</Text>
+                  <StarRating rating={hasReview.rating} />
+                  <Text style={styles.reviewComment}>{hasReview.comment || '(No comment)'}</Text>
+                </View>
+              ) : (
+                <View style={styles.reviewInputContainer}>
+                  <Text style={styles.reviewInputLabel}>Rate this restaurant:</Text>
+                  <StarRating 
+                    rating={newRating} 
+                    editable={true} 
+                    onRatingChange={setNewRating} 
+                  />
+                  <TextInput
+                    style={styles.commentInput}
+                    placeholder="Add a comment (optional)"
+                    value={newComment}
+                    onChangeText={setNewComment}
+                    multiline
+                  />
+                  <CustomButton
+                    title={isSubmitting ? "Submitting..." : "Submit Review"}
+                    onPress={() => submitReview(selectedOrder.id, restaurant.id)}
+                    disabled={isSubmitting}
+                  />
+                </View>
+              )}
+            </>
+          )}
 
           <CustomButton
             title="Close"
@@ -551,6 +697,39 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
     marginTop: 20,
+  },
+
+  reviewContainer: {
+    marginVertical: 10,
+    padding: 10,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+  },
+  reviewTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 5,
+  },
+  reviewComment: {
+    fontSize: 14,
+    marginTop: 5,
+    fontStyle: 'italic',
+  },
+  reviewInputContainer: {
+    marginVertical: 10,
+  },
+  reviewInputLabel: {
+    fontSize: 16,
+    marginBottom: 5,
+  },
+  commentInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    padding: 10,
+    minHeight: 80,
+    marginVertical: 10,
+    textAlignVertical: 'top',
   },
 });
 
