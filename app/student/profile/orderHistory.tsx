@@ -528,7 +528,11 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 32,
   },
-
+  divider: {
+  height: 1,
+  backgroundColor: '#ccc',
+  marginVertical: 12,
+  },
   // Loading state
   loadingContainer: {
     flex: 1,
