@@ -46,19 +46,6 @@ export default function AppLayout() {
                 name="index"
                 options={{
                     title: "Menu",
-                    headerLeft: () => (
-                        <TouchableOpacity
-                            onPress={() => router.push("/student")}
-                            style={styles.backButton}
-                        >
-                            <Ionicons
-                                name="arrow-back"
-                                size={24}
-                                color="#fff"
-                            />
-                            <Text style={styles.backButtonText}>Back</Text>
-                        </TouchableOpacity>
-                    ),
                 }}
             />
             <Stack.Screen name="restaurant" options={{ title: "Restaurant" }} />
@@ -90,7 +77,7 @@ const styles = StyleSheet.create({
     cartButtonText: {
         color: "#fff",
         backgroundColor: "#f00",
-        borderRadius: "100%",
+        borderRadius: 100,
         paddingHorizontal: 4,
         right: -4,
         top: -4,
