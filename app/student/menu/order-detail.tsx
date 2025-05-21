@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Button, Alert } 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '@/lib/supabase';
 import { markOrderAsCollected } from '@/lib/orders';
+import alert from "@/components/alert";
 
 /**
  * Type definition for pickup window information
@@ -315,11 +316,11 @@ export default function OrderDetailScreen() {
           [{ text: 'OK', onPress: () => router.push('/student/menu/orders') }]
         );
       } else {
-        Alert.alert('Error', 'Failed to mark order as collected. Please try again.');
+        alert('Error', 'Failed to mark order as collected. Please try again.');
       }
     } catch (error) {
       console.error('Error collecting order:', error);
-      Alert.alert('Error', 'An unexpected error occurred. Please try again.');
+      alert('Error', 'An unexpected error occurred. Please try again.');
     } finally {
       setCollecting(false);
     }
@@ -332,13 +333,13 @@ export default function OrderDetailScreen() {
   const handleGeneratePin = async () => {
     // Validate order status before generating PIN
     if (!order || getOrderStatus(order) !== 'ready') {
-      Alert.alert('Cannot generate PIN', 'PIN can only be generated when your order is ready for pickup');
+      alert('Cannot generate PIN', 'PIN can only be generated when your order is ready for pickup');
       return;
     }
     
     // If PIN already exists, just show it
     if (order.pickup_pin) {
-      Alert.alert('Pickup PIN', `Your PIN is ${order.pickup_pin}`);
+      alert('Pickup PIN', `Your PIN is ${order.pickup_pin}`);
       return;
     }
 
@@ -364,7 +365,7 @@ export default function OrderDetailScreen() {
 
     } catch (err: any) {
       console.error(err);
-      Alert.alert('Error', err.message ?? 'Failed to generate pickup PIN.');
+      alert('Error', err.message ?? 'Failed to generate pickup PIN.');
     } finally {
       setGeneratingPin(false);
     }

@@ -6,11 +6,11 @@ import { useEffect, useState } from "react";
 import {
     Text,
     StyleSheet,
-    Alert,
     View,
     TouchableOpacity,
     ActivityIndicator,
 } from "react-native";
+import alert from "@/components/alert";
 
 export default function Checkout() {
     const [loading, setLoading] = useState(false);
@@ -52,7 +52,7 @@ export default function Checkout() {
             >();
 
         if (error !== null) {
-            Alert.alert(
+            alert(
                 "Something went wrong fetching pickup windows.",
                 error.message
             );
@@ -79,7 +79,7 @@ export default function Checkout() {
         const user = await supabase.auth.getUser();
 
         if (user.data.user === null) {
-            Alert.alert("Something went wrong. Could not retrieve user ID.");
+            alert("Something went wrong. Could not retrieve user ID.", "");
             setLoading(false);
             return;
         }
@@ -91,8 +91,8 @@ export default function Checkout() {
             .single<{ preferred_campus: string }>();
 
         if (campusError !== null) {
-            Alert.alert(
-                "Something went wrong fetching user details. " +
+            alert(
+                "Something went wrong fetching user details. ",
                     campusError.message
             );
             setLoading(false);
@@ -100,7 +100,7 @@ export default function Checkout() {
         }
 
         if (campus === null) {
-            Alert.alert("Something went wrong. Could not retrieve user data.");
+            alert("Something went wrong. Could not retrieve user data.", "");
             setLoading(false);
             return;
         }
@@ -113,9 +113,8 @@ export default function Checkout() {
                 .overrideTypes<Array<{ id: string; name: string }>>();
 
         if (collectionPointError !== null) {
-            Alert.alert(
-                "Something went wrong fetching pickup locations. " +
-                    collectionPointError
+            alert(
+                "Something went wrong fetching pickup locations. ", `${collectionPointError}`
             );
             setLoading(false);
             return;
