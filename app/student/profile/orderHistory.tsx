@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, Modal, Image, ScrollView, StyleSheet, TextInput } from "react-native";
 import withRoleProtection from "@/components/withRoleProtection";
 import { supabase } from "@/lib/supabase";
@@ -64,7 +64,7 @@ function OrderHistoryScreen() {
       .eq('user', user.id);
       
     if (data) {
-      const reviewsMap = data.reduce((acc, review) => {
+      const reviewsMap = data.reduce<Record<string, { rating: number; comment: string }>>((acc, review) => {
         acc[review.order_id] = { rating: review.rating, comment: review.comment };
         return acc;
       }, {});
@@ -210,7 +210,7 @@ function OrderHistoryScreen() {
   
     // Extract restaurant info
     const restaurantsRaw = itemsData
-      .map((row: any) => row.item?.restaurant)
+      .map((row: any) => row.item.restaurant)
       .filter((r: any) => r);  // filter out nulls just in case
   
     // Ensure only unique restaurant ID
@@ -241,7 +241,7 @@ function OrderHistoryScreen() {
   }, [orderItems]);
 
   const renderOrderItem = ({ item }: { item: Order }) => {
-    const date = new Date(item.pickup_window?.open).toLocaleDateString();
+    const date = new Date(item.pickup_window.open).toLocaleDateString();
     let status = "Pending";
     if (item.cancelled_at) status = "Cancelled";
     else if (item.completed_at || item.collected_at) status = "Completed";
