@@ -26,6 +26,8 @@
     "@react-native-picker/picker": "2.9.0",
     "@react-navigation/native": "^6.0.2",
     "@rneui/themed": "^4.0.0-rc.8",
+    "@stripe/react-stripe-js": "^3.7.0",
+    "@stripe/stripe-js": "^7.3.0",
     "@stripe/stripe-react-native": "^0.45.0",
     "@supabase/supabase-js": "^2.45.4",
     "date-fns": "^4.1.0",
