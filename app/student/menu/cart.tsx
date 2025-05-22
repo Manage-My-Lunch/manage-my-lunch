@@ -143,6 +143,7 @@ export default function Cart() {
             Alert.alert("Failed to finalise order", `${error}`);
             setLoading(false);
         }
+        setLoading(false);
     };
 
     return (
