@@ -1,8 +1,9 @@
-import { Text, View, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, Modal, Button } from "react-native";
+import { Text, View, StyleSheet, ActivityIndicator, TouchableOpacity, Modal, Button } from "react-native";
 import withRoleProtection from "@/components/withRoleProtection";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { UserProfile } from "@/lib/types";
+import alert from "@/components/alert";
 
 function Index() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -33,7 +34,7 @@ function Index() {
       
       if (error) {
         console.error("Error updating rewards:", error);
-        Alert.alert("Error", "Unable to redeem vouchers");
+        alert("Error", "Unable to redeem vouchers");
         return;
       }
       
@@ -44,12 +45,12 @@ function Index() {
         voucher_count: newVoucherCount
       });
       
-      Alert.alert("Success", `You've redeemed ${redeemableVouchers} voucher${redeemableVouchers !== 1 ? 's' : ''}!`);
+      alert("Success", `You've redeemed ${redeemableVouchers} voucher${redeemableVouchers !== 1 ? 's' : ''}!`);
       setModalVisible(false);
       setRedeemableVouchers(0);
     } catch (error) {
       console.error("Error:", error);
-      Alert.alert("Error", "An error occurred while redeeming vouchers");
+      alert("Error", "An error occurred while redeeming vouchers");
     }
   };
   
@@ -66,7 +67,7 @@ function Index() {
         const { data: { user }, error: userError } = await supabase.auth.getUser();
         
         if (userError || !user) {
-          Alert.alert("Error", "Unable to fetch user information");
+          alert("Error", "Unable to fetch user information");
           setLoading(false);
           return;
         }
@@ -80,13 +81,13 @@ function Index() {
 
         if (error) {
           console.error("Error fetching user profile:", error);
-          Alert.alert("Error", "Unable to fetch rewards information");
+          alert("Error", "Unable to fetch rewards information");
         } else {
           setProfile(data as UserProfile);
         }
       } catch (error) {
         console.error("Error:", error);
-        Alert.alert("Error", "An error occurred while fetching your rewards");
+        alert("Error", "An error occurred while fetching your rewards");
       } finally {
         setLoading(false);
       }
