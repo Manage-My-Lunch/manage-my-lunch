@@ -9,6 +9,8 @@ import {
     ActivityIndicator,
     Modal,
     Pressable,
+    Alert,
+    Platform,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { supabase } from "@/lib/supabase";
