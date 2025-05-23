@@ -7,12 +7,14 @@ import {
   Button,
   TextInput,
   Image,
+  ScrollView,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
 import React from "react";
 import { supabase } from "@/lib/supabase";
 import { MenuItemType, RestaurantType } from "@/lib/types";
+import RestaurantReviews from "@/components/student/review/RestaurantReviews";
 
 export default function Menu() {
   const router = useRouter();
@@ -104,7 +106,7 @@ export default function Menu() {
   );
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container}>
       {restaurant && (
         <View style={styles.restaurantInfo}>
           <Text style={styles.restaurantName}>{restaurant.name}</Text>
@@ -154,14 +156,25 @@ export default function Menu() {
       )}
 
       {!loading && !error && (
-        <FlatList
-          data={filteredItems}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-        />
+        <View>
+          <FlatList
+            data={filteredItems}
+            renderItem={renderItem}
+            keyExtractor={(item) => item.id}
+            contentContainerStyle={styles.list}
+            scrollEnabled={false}
+            nestedScrollEnabled={true}
+          />
+          
+          {restaurant && (
+            <View style={styles.reviewsSection}>
+              <Text style={styles.sectionTitle}>Reviews</Text>
+              <RestaurantReviews restaurantId={restaurant.id} />
+            </View>
+          )}
+        </View>
       )}
-    </View>
+    </ScrollView>
   );
 }
 
@@ -307,5 +320,15 @@ const styles = StyleSheet.create({
     marginLeft: 5,
     color: "#00BFA6",
     fontSize: 16,
+  },
+  reviewsSection: {
+    marginTop: 20,
+    marginBottom: 40,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+    paddingHorizontal: 10,
   },
 });
