@@ -218,7 +218,7 @@ function RestaurantOrders() {
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#00BFA6" />
+        <ActivityIndicator testID="ActivityIndicator" size="large" color="#00BFA6" />
       </View>
     );
   }
