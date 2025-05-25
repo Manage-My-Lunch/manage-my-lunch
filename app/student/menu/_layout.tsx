@@ -2,12 +2,12 @@
 import { Stack, useRouter } from "expo-router";
 import React from "react";
 import {
-  SafeAreaView,
-  View,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  Platform,
+    SafeAreaView,
+    View,
+    TouchableOpacity,
+    Text,
+    StyleSheet,
+    Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCart } from "@/lib/cart";
@@ -16,7 +16,7 @@ export default function AppLayout() {
     const router = useRouter();
     const { totalItems } = useCart();
 
-    const backButton = () => {
+    const BackButton = () => {
         return (
             <TouchableOpacity
                 onPress={() => router.back()}
@@ -28,7 +28,7 @@ export default function AppLayout() {
         );
     };
 
-    const cartButton = () => {
+    const CartButton = () => {
         return (
             <TouchableOpacity
                 onPress={() => router.push("/student/menu/cart")}
@@ -43,96 +43,143 @@ export default function AppLayout() {
     };
 
     return (
-        <Stack
-            screenOptions={{
-            header: ({ route, options }) => (
-            <SafeAreaView style={styles.safeArea}>
-                <View style={styles.container}>
-                    <TouchableOpacity
-                        onPress={() => router.back()}
-                        style={styles.backButton}
-                    >
-                        <Ionicons name="arrow-back" size={24} color="#fff" />
-                        <Text style={styles.backButtonText}>Back</Text>
-                    </TouchableOpacity>
-
-                    <Text style={styles.title}>
-                        {options.title}
-                    </Text>
-
-                    <TouchableOpacity
-                        onPress={() => router.push("/student/menu/cart")}
-                        style={styles.cartButton}
-                    >
-                        <Ionicons name="cart" size={24} color="#fff" />
-                        {totalItems > 0 && (
-                        <Text style={styles.cartButtonText}>
-                            {totalItems}
-                        </Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
-            </SafeAreaView>
-            ),
-            }}
-        >
-        <Stack.Screen
+        <Stack>
+            <Stack.Screen
                 name="index"
                 options={{
                     title: "Menu",
-                    headerLeft: () => <></>,
-                    headerRight: cartButton,
+                    header: ({ route, options }) => (
+                        <SafeAreaView style={styles.safeArea}>
+                            <View style={styles.container}>
+                                <Text style={styles.title}>
+                                    {options.title}
+                                </Text>
+
+                                <CartButton />
+                            </View>
+                        </SafeAreaView>
+                    ),
                 }}
             />
             <Stack.Screen
                 name="restaurant"
                 options={{
                     title: "Restaurant",
-                    headerLeft: backButton,
-                    headerRight: cartButton,
+                    header: ({ route, options }) => (
+                        <SafeAreaView style={styles.safeArea}>
+                            <View style={styles.container}>
+                                <BackButton />
+
+                                <Text style={styles.title}>
+                                    {options.title}
+                                </Text>
+
+                                <CartButton />
+                            </View>
+                        </SafeAreaView>
+                    ),
                 }}
             />
             <Stack.Screen
                 name="detail"
                 options={{
                     title: "Menu Item Details",
-                    headerLeft: backButton,
-                    headerRight: cartButton,
+                    header: ({ route, options }) => (
+                        <SafeAreaView style={styles.safeArea}>
+                            <View style={styles.container}>
+                                <BackButton />
+
+                                <Text style={styles.title}>
+                                    {options.title}
+                                </Text>
+
+                                <CartButton />
+                            </View>
+                        </SafeAreaView>
+                    ),
                 }}
             />
             <Stack.Screen
                 name="cart"
                 options={{
                     title: "Your Cart",
-                    headerLeft: backButton,
+                    header: ({ route, options }) => (
+                        <SafeAreaView style={styles.safeArea}>
+                            <View style={styles.container}>
+                                <BackButton />
+
+                                <Text style={styles.title}>
+                                    {options.title}
+                                </Text>
+                            </View>
+                        </SafeAreaView>
+                    ),
                 }}
             />
             <Stack.Screen
                 name="payment"
                 options={{
                     title: "Confirm Pickup & Pay",
-                    headerLeft: backButton,
+                    header: ({ route, options }) => (
+                        <SafeAreaView style={styles.safeArea}>
+                            <View style={styles.container}>
+                                <BackButton />
+
+                                <Text style={styles.title}>
+                                    {options.title}
+                                </Text>
+                            </View>
+                        </SafeAreaView>
+                    ),
                 }}
             />
             <Stack.Screen
                 name="order-confirmation"
                 options={{
                     title: "Order Confirmation",
-                    headerLeft: () => <></>,
+                    header: ({ route, options }) => (
+                        <SafeAreaView style={styles.safeArea}>
+                            <View style={styles.container}>
+                                <Text style={styles.title}>
+                                    {options.title}
+                                </Text>
+                            </View>
+                        </SafeAreaView>
+                    ),
                 }}
             />
             <Stack.Screen
                 name="orders"
                 options={{
                     title: "Current Orders",
-                    headerLeft: backButton,
+                    header: ({ route, options }) => (
+                        <SafeAreaView style={styles.safeArea}>
+                            <View style={styles.container}>
+                                <BackButton />
+
+                                <Text style={styles.title}>
+                                    {options.title}
+                                </Text>
+                            </View>
+                        </SafeAreaView>
+                    ),
                 }}
             />
             <Stack.Screen
                 name="order-detail"
                 options={{
                     title: "Order Details",
-                    headerLeft: backButton,
+                    header: ({ route, options }) => (
+                        <SafeAreaView style={styles.safeArea}>
+                            <View style={styles.container}>
+                                <BackButton />
+
+                                <Text style={styles.title}>
+                                    {options.title}
+                                </Text>
+                            </View>
+                        </SafeAreaView>
+                    ),
                 }}
             />
         </Stack>
@@ -184,5 +231,5 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontSize: 20,
         fontWeight: "bold",
-    },   
+    },
 });
