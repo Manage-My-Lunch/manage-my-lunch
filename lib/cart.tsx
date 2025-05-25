@@ -424,7 +424,7 @@ export class Cart {
         if (error) throw error;
     };
 
-    public async completeOrder(pickupWindowId: string) {
+    public async completeOrder(pickupWindowId: string, paymentIntent: string) {
         try {
             // Track processed restaurant IDs to avoid duplicate updates
             const processedRestaurants = new Set<string>();
@@ -525,7 +525,12 @@ export class Cart {
 
             const { error: completeOrderError } = await supabase
                 .from("order")
-                .update({ paid_at: now, updated_at: now, pickup_window: pickupWindowId, })
+                .update({
+                    paid_at: now,
+                    updated_at: now,
+                    pickup_window: pickupWindowId,
+                    stripe_payment_intent: paymentIntent,
+                })
                 .eq("id", this.#id);
 
             if (completeOrderError) {
@@ -535,13 +540,10 @@ export class Cart {
                 );
                 throw completeOrderError;
             }
-            
         } catch (error) {
             console.error("Unexpected error during completeOrder:", error);
             throw error; // Re-throw to let calling code handle
         }
-
-        Alert.alert("Order complete");
     }
 }
 
@@ -563,7 +565,10 @@ const CartContext = createContext<
           setVouchersUsed: (count: number) => void;
           discountAmount: number;
           finalTotal: number;
-          completeOrder: (pickupWindowId: string) => Promise<void>;
+          completeOrder: (
+              pickupWindowId: string,
+              paymentIntent: string
+          ) => Promise<void>;
       }
     | undefined
 >(undefined);
@@ -655,8 +660,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         await cart.setComment(comment);
     };
 
-    const completeOrder = async (pickupWindowId: string) => {
-        await cart.completeOrder(pickupWindowId);
+    const completeOrder = async (
+        pickupWindowId: string,
+        paymentIntent: string
+    ) => {
+        await cart.completeOrder(pickupWindowId, paymentIntent);
         const newCart = await Cart.Init();
         setCart(newCart);
         setItems(newCart.items);

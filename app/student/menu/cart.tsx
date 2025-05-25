@@ -76,15 +76,6 @@ export default function Cart() {
         }
     };
 
-    const handleCompleteOrder = async () => {
-        try {
-            await completeOrder();
-        } catch (error) {
-            console.error("Failed to complete order " + error);
-            Alert.alert("Failed to complete order: " + error);
-        }
-    };
-
     // Fetch user profile to get available vouchers
     useEffect(() => {
         const fetchUserProfile = async () => {
@@ -147,11 +138,12 @@ export default function Cart() {
         setLoading(true);
         try {
             await setCartComment(comment);
-            router.push("/student/checkout");
+            router.push("/student/menu/payment");
         } catch (error) {
             Alert.alert("Failed to finalise order", `${error}`);
             setLoading(false);
         }
+        setLoading(false);
     };
 
     return (
