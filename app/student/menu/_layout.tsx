@@ -1,6 +1,14 @@
+// AppLayout.tsx
 import { Stack, useRouter } from "expo-router";
 import React from "react";
-import { TouchableOpacity, Text, StyleSheet } from "react-native";
+import {
+  SafeAreaView,
+  View,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  Platform,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCart } from "@/lib/cart";
 
@@ -37,16 +45,38 @@ export default function AppLayout() {
     return (
         <Stack
             screenOptions={{
-                headerStyle: {
-                    backgroundColor: "#00BFA6",
-                },
-                headerTintColor: "#fff",
-                headerTitleStyle: {
-                    fontWeight: "bold",
-                },
+            header: ({ route, options }) => (
+            <SafeAreaView style={styles.safeArea}>
+                <View style={styles.container}>
+                    <TouchableOpacity
+                        onPress={() => router.back()}
+                        style={styles.backButton}
+                    >
+                        <Ionicons name="arrow-back" size={24} color="#fff" />
+                        <Text style={styles.backButtonText}>Back</Text>
+                    </TouchableOpacity>
+
+                    <Text style={styles.title}>
+                        {options.title}
+                    </Text>
+
+                    <TouchableOpacity
+                        onPress={() => router.push("/student/menu/cart")}
+                        style={styles.cartButton}
+                    >
+                        <Ionicons name="cart" size={24} color="#fff" />
+                        {totalItems > 0 && (
+                        <Text style={styles.cartButtonText}>
+                            {totalItems}
+                        </Text>
+                        )}
+                    </TouchableOpacity>
+                </View>
+            </SafeAreaView>
+            ),
             }}
         >
-            <Stack.Screen
+        <Stack.Screen
                 name="index"
                 options={{
                     title: "Menu",
@@ -131,9 +161,28 @@ const styles = StyleSheet.create({
         backgroundColor: "#f00",
         borderRadius: 100,
         paddingHorizontal: 4,
+        position: "absolute",
         right: -4,
         top: -4,
-        fontWeight: 600,
-        position: "absolute",
+        minWidth: 16,
+        textAlign: "center",
     },
+    safeArea: {
+        backgroundColor: "#00BFA6",
+    },
+    container: {
+        height: Platform.OS === "web" ? 100 : 50, //might need adjustment on lower resolutions
+        flexDirection: "row",
+        alignItems: "flex-end",
+        justifyContent: "space-between",
+        paddingHorizontal: 12,
+        paddingBottom: 10,
+    },
+    title: {
+        flex: 1,
+        textAlign: "center",
+        color: "#fff",
+        fontSize: 20,
+        fontWeight: "bold",
+    },   
 });
