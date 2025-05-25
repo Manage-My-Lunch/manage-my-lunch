@@ -9,8 +9,13 @@ import {
 } from "react-native";
 
 export default function OrderConfirmation() {
-    const { items, total, discountAmount, finalTotal, vouchersUsed } =
+    const { items, total, discountAmount, finalTotal, vouchersUsed, reset } =
         useCart();
+
+    const handleHome = async () => {
+        await reset();
+        router.push("/student/menu");
+    };
 
     return (
         <ScrollView contentContainerStyle={styles.container}>
@@ -53,10 +58,7 @@ export default function OrderConfirmation() {
                 </Text>
             </View>
             <Text style={styles.thankYou}>Thank you for your order!</Text>
-            <TouchableOpacity
-                style={styles.homeButton}
-                onPress={() => router.push("/student/menu")}
-            >
+            <TouchableOpacity style={styles.homeButton} onPress={handleHome}>
                 <Text style={styles.homeButtonText}>Back to Home</Text>
             </TouchableOpacity>
         </ScrollView>
