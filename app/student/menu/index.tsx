@@ -9,8 +9,6 @@ import {
     ActivityIndicator,
     Modal,
     Pressable,
-    Alert,
-    Platform,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { supabase } from "@/lib/supabase";
@@ -49,6 +47,45 @@ export function Index() {
         fetchRestaurants();
         fetchUnclaimedOrdersCount();
     }, [categoryFilter]);
+
+    // When supabase table is updated listen so if restaurant marked busy it shows busy
+    useEffect(() => {
+        const restaurantChannel = supabase
+            .channel("restaurant-updates")
+            .on(
+                "postgres_changes",
+                {
+                    event: "UPDATE",
+                    schema: "public",
+                    table: "restaurant",
+                },
+                (payload) => {
+                    const updatedRestaurant = payload.new;
+                    setRestaurants((prev) => {
+                        const updated = prev.map((r) =>
+                            r.id === updatedRestaurant.id ? { ...r, ...updatedRestaurant } : r
+                        );
+
+                        // Resort after updating
+                        const sorted = updated.sort((a, b) => {
+                            if (sortType === "popularity") {
+                                return (b.monthly_sale || 0) - (a.monthly_sale || 0);
+                            } else {
+                                if (a.is_busy === b.is_busy) return 0;
+                                return !a.is_busy ? -1 : 1;
+                            }
+                        });
+
+                        return sorted;
+                    });
+                }
+            )
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(restaurantChannel);
+        };
+    }, []);
 
     // Refresh unclaimed orders count when page gets focus
     useFocusEffect(
