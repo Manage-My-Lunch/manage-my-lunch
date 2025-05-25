@@ -569,6 +569,7 @@ const CartContext = createContext<
               pickupWindowId: string,
               paymentIntent: string
           ) => Promise<void>;
+          reset: () => Promise<void>;
       }
     | undefined
 >(undefined);
@@ -665,6 +666,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         paymentIntent: string
     ) => {
         await cart.completeOrder(pickupWindowId, paymentIntent);
+    };
+
+    const reset = async () => {
         const newCart = await Cart.Init();
         setCart(newCart);
         setItems(newCart.items);
@@ -688,6 +692,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
                 discountAmount,
                 finalTotal,
                 completeOrder,
+                reset,
             }}
         >
             {children}
