@@ -1,4 +1,5 @@
-import { TextInput, Text, View, StyleSheet, Pressable, Alert } from "react-native";
+import { TextInput, Text, View, StyleSheet, Pressable } from "react-native";
+import alert from "@/components/alert";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
@@ -11,9 +12,9 @@ export default function Index() {
       redirectTo: 'http://localhost:8081/reset-password',
     })
     if (error) {
-      Alert.alert("Error", error.message);
+      alert("Error", error.message);
     } else {
-      Alert.alert(
+      alert(
         `"Recovery instructions sent to ${email}."`,
         "If an account exists for this email, you'll receive a password reset email."
       );

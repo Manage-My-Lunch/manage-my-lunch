@@ -4,13 +4,15 @@ import {
     StyleSheet,
     TouchableOpacity,
     ScrollView,
-    Alert,
+    Alert
 } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { MenuItemType, Allergen } from "@/lib/types";
 import { useCart } from "@/lib/cart";
+import alert from "@/components/alert";
+
 export default function MenuItemDetail() {
     const { id, restaurantId } = useLocalSearchParams();
     const [menuItem, setMenuItem] = useState<MenuItemType | null>(null);
@@ -85,14 +87,14 @@ export default function MenuItemDetail() {
     const handleAddToCart = async () => {
         // Ensure menu item has loaded
         if (!menuItem) {
-            Alert.alert("Error", "Item details are not available.");
+            alert("Error", "Item details are not available.");
             return;
         }
 
         const proceedWithAdding = async () => {
             await addItem(menuItem, quantity);
 
-            Alert.alert("Success", "Item added to cart!");
+            alert("Success", "Item added to cart!");
         };
 
         // Existing code to check for allergens

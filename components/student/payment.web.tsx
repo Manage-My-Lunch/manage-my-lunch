@@ -7,11 +7,11 @@ import { useEffect, useState } from "react";
 import {
     Text,
     StyleSheet,
-    Alert,
     View,
     TouchableOpacity,
     ActivityIndicator,
 } from "react-native";
+import alert from "@/components/alert";
 import { loadStripe } from "@stripe/stripe-js";
 import {
     Elements,
@@ -44,7 +44,7 @@ function PaymentForm({
         });
         setSubmitting(false);
         if (error) {
-            Alert.alert("Payment failed", error.message || "Unknown error");
+            alert("Payment failed", error.message || "Unknown error");
         } else {
             onSuccess();
         }
@@ -110,7 +110,7 @@ export default function PaymentWeb() {
                 }>
             >();
         if (error !== null) {
-            Alert.alert(
+            alert(
                 "Something went wrong fetching pickup windows.",
                 error.message
             );
@@ -133,7 +133,7 @@ export default function PaymentWeb() {
         setLoading(true);
         const user = await supabase.auth.getUser();
         if (user.data.user === null) {
-            Alert.alert("Something went wrong. Could not retrieve user ID.");
+            alert("Something went wrong. Could not retrieve user ID.", "");
             setLoading(false);
             return;
         }
@@ -143,15 +143,15 @@ export default function PaymentWeb() {
             .eq("id", user.data.user.id)
             .single<{ preferred_campus: string }>();
         if (campusError !== null) {
-            Alert.alert(
-                "Something went wrong fetching user details. " +
-                    campusError.message
+            alert(
+                "Something went wrong fetching user details. ",
+                campusError.message
             );
             setLoading(false);
             return;
         }
         if (campus === null) {
-            Alert.alert("Something went wrong. Could not retrieve user data.");
+            alert("Something went wrong. Could not retrieve user data.", "");
             setLoading(false);
             return;
         }
@@ -162,9 +162,9 @@ export default function PaymentWeb() {
                 .eq("campus", campus.preferred_campus)
                 .overrideTypes<Array<{ id: string; name: string }>>();
         if (collectionPointError !== null) {
-            Alert.alert(
-                "Something went wrong fetching pickup locations. " +
-                    collectionPointError
+            alert(
+                "Something went wrong fetching pickup locations. ",
+                `${collectionPointError}`
             );
             setLoading(false);
             return;
@@ -196,7 +196,7 @@ export default function PaymentWeb() {
             setPaymentIntent(data.paymentIntent);
             setStripePromise(loadStripe(data.publishableKey));
         } else {
-            Alert.alert(
+            alert(
                 "Error fetching payment params",
                 error ? error.message : "Unknown error"
             );

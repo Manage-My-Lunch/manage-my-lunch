@@ -1,6 +1,7 @@
-import { TextInput, Text, View, StyleSheet, Pressable, Alert } from "react-native";
+import { TextInput, Text, View, StyleSheet, Pressable } from "react-native";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import alert from "@/components/alert";
 
 export default function Index() {
   const [newPassword, setNewPassword] = useState("");
@@ -8,7 +9,7 @@ export default function Index() {
 
   const handleReset = async () => {
     if (newPassword !== confirmPassword) {
-      Alert.alert("Passwords don't match.");
+      alert("Passwords don't match.", "");
       return;
     }
 
@@ -18,9 +19,9 @@ export default function Index() {
     })
 
     if (error) {
-      alert("Error" + error.message);
+      alert("Error", error.message);
     } else {
-      alert("Password updated!");
+      alert("Password updated!", "");
     }
   };
 

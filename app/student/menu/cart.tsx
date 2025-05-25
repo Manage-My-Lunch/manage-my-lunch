@@ -8,7 +8,6 @@ import {
     StyleSheet,
     TouchableOpacity,
     Image,
-    Alert,
     Modal,
     Button,
     TextInput,
@@ -20,6 +19,7 @@ import {
 } from "react-native";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import alert from "@/components/alert";
 
 export default function Cart() {
     const {
@@ -54,7 +54,7 @@ export default function Cart() {
             await addItem(item, 1);
         } catch (error) {
             console.error("Failed to update item quantity: " + error);
-            Alert.alert("Failed to update item quantity: " + error);
+            alert("Failed to update item quantity: ", `${error}`);
         }
     };
 
@@ -63,7 +63,7 @@ export default function Cart() {
             await removeItem(item, 1);
         } catch (error) {
             console.error("Failed to update item quantity: " + error);
-            Alert.alert("Failed to update item quantity: " + error);
+            alert("Failed to update item quantity: ", `${error}`);
         }
     };
 
@@ -140,7 +140,7 @@ export default function Cart() {
             await setCartComment(comment);
             router.push("/student/menu/payment");
         } catch (error) {
-            Alert.alert("Failed to finalise order", `${error}`);
+            alert("Failed to finalise order", `${error}`);
             setLoading(false);
         }
         setLoading(false);
