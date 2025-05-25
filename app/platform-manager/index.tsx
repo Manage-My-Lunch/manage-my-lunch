@@ -18,6 +18,10 @@ type Order = {
   pin: string;
 };
 
+function makeUnwrappable(str: string) {
+  return str.replace(/ /g, "\u00A0").replace(/-/g, "\u2011")
+}
+
 export default function Index() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
@@ -26,6 +30,14 @@ export default function Index() {
   const [searchId, setSearchId] = useState("");
 
   const listRef = useRef<FlatList<Order>>(null);
+
+  const dateFormatter = new Intl.DateTimeFormat('en-US', {
+    month:  'short',
+    day:    'numeric',
+    hour:   'numeric',
+    minute: 'numeric',
+    hour12: true,
+  });
 
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -98,10 +110,10 @@ export default function Index() {
       <Text style={[styles.headerTextWide]}>Order User Name</Text>
       <Text style={[styles.headerTextWide]}>Collection Point</Text>
       <Text style={[styles.headerTextWide]}>Pickup Window</Text>
-      <Text style={[styles.headerText]}>Delivered?</Text>
-      <Text style={[styles.headerText]}>Total Items</Text>
+      <Text style={[styles.headerText, styles.centerText]}>Delivered?</Text>
+      <Text style={[styles.headerText, styles.centerText]}>Total Items</Text>
       <Text style={[styles.headerTextWide]}>Comments</Text>
-      <Text style={[styles.headerText]}>Confirm</Text>
+      <Text style={[styles.headerTextWide]}>Confirm</Text>
     </View>
   );
 
@@ -111,51 +123,41 @@ export default function Index() {
         <Text style={styles.itemTextWide}>{item.first_name} {item.last_name}</Text>
         <Text style={styles.itemTextWide}>{item.collection_point_name}</Text>
         <Text style={styles.itemTextWide}>
-          {item.pickup_open ? new Intl.DateTimeFormat('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: 'numeric',
-            hour12: true
-          }).format(new Date(item.pickup_open)) : "N/A"}
-          &nbsp;&nbsp;-&nbsp;&nbsp;
-           {item.pickup_close ? new Intl.DateTimeFormat('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: 'numeric',
-            hour12: true
-          }).format(new Date(item.pickup_close)) : "N/A"}
+          {item.pickup_open ? makeUnwrappable(dateFormatter.format(new Date(item.pickup_open))) : "N/A"}
+          <Text style={{ flexShrink: 0 }}>{"  -  "}</Text>
+          {item.pickup_close ? makeUnwrappable(dateFormatter.format(new Date(item.pickup_close))) : "N/A"}
         </Text>
-        <Text style={styles.itemText}>
+        <Text style={[styles.itemText, styles.centerText]}>
           {item.delivered_at ? "✔" : "✖"}
         </Text>
-        <Text style={styles.itemText}>{item.total_items}</Text>
+        <Text style={[styles.itemText, styles.centerText]}>{item.total_items}</Text>
         <Text style={styles.itemTextWide}>{item.comments ? item.comments : <i>None</i>}</Text>
-        <Pressable
-            style={styles.button}
-            onPress={async () => {
-              const userPin = window.prompt(`Enter PIN for ${item.first_name} ${item.last_name}:`);
+        <View style={styles.itemTextWide}>
+          <Pressable
+              style={styles.button}
+              onPress={async () => {
+                const userPin = window.prompt(`Enter PIN for ${item.first_name} ${item.last_name}:`);
 
-              if (userPin === null) return;
+                if (userPin === null) return;
 
-              if (userPin === item.pin) {
-                const confirm = window.confirm("PIN verified. Confirm pickup?");
-                if (confirm) {
-                  const success = await collectOrder(item.id);
-                  if (success) {
-                    const today = new Date().toISOString().split("T")[0];
-                    await fetchOrders(today);
+                if (userPin === item.pin) {
+                  const confirm = window.confirm("PIN verified. Confirm pickup?");
+                  if (confirm) {
+                    const success = await collectOrder(item.id);
+                    if (success) {
+                      const today = new Date().toISOString().split("T")[0];
+                      await fetchOrders(today);
+                    }
                   }
+                } else {
+                  window.alert("Incorrect PIN.");
                 }
-              } else {
-                window.alert("Incorrect PIN.");
               }
-            }
-        }
-        >
-          <Text style={styles.buttonText}>Enter PIN</Text>
-        </Pressable>
+          }
+          >
+            <Text style={styles.buttonText}>Enter PIN</Text>
+          </Pressable>
+      </View>
 
       </View>
     </View>
@@ -281,6 +283,9 @@ const styles = StyleSheet.create({
     padding: 10,
     marginRight: 8,
     fontSize: 16,
+  },
+  centerText: {
+    textAlign: "center",
   }
 
 });
