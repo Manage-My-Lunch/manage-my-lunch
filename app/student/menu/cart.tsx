@@ -72,16 +72,7 @@ export default function Cart() {
             await removeAllItems();
         } catch (error) {
             console.error("Failed to update item quantity: " + error);
-            alert("Failed to update item quantity: ", `${error}`);
-        }
-    };
-
-    const handleCompleteOrder = async () => {
-        try {
-            await completeOrder();
-        } catch (error) {
-            console.error("Failed to complete order " + error);
-            alert("Failed to complete order: ", `${error}`);
+            Alert.alert("Failed to update item quantity: " + error);
         }
     };
 
@@ -147,11 +138,12 @@ export default function Cart() {
         setLoading(true);
         try {
             await setCartComment(comment);
-            router.push("/student/checkout");
+            router.push("/student/menu/payment");
         } catch (error) {
             alert("Failed to finalise order", `${error}`);
             setLoading(false);
         }
+        setLoading(false);
     };
 
     return (
