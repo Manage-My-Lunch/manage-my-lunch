@@ -201,13 +201,17 @@ export default function Checkout() {
     const openPaymentSheet = async () => {
         setPaymentLoading(true);
         const { error } = await presentPaymentSheet();
-        setPaymentLoading(false);
+        if (finalTotal === 0) {
+            completeOrder(pickupWindows[pickupWindow].id, paymentIntent);
+            router.push("/student/menu/order-confirmation");
+        }
         if (error) {
             Alert.alert("Payment failed", error.message);
         } else {
             completeOrder(pickupWindows[pickupWindow].id, paymentIntent);
             router.push("/student/menu/order-confirmation");
         }
+        setPaymentLoading(false);
     };
 
     return (
