@@ -72,7 +72,7 @@ export default function Cart() {
             await removeAllItems();
         } catch (error) {
             console.error("Failed to update item quantity: " + error);
-            Alert.alert("Failed to update item quantity: " + error);
+            alert("Failed to update item quantity: ", `${error}`);
         }
     };
 
