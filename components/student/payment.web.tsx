@@ -90,7 +90,10 @@ export default function PaymentWeb() {
 
     const fetchWindows = async (id: string) => {
         setLoading(true);
-        const now = new Date();
+        let now = new Date();
+        if (now.getHours() > 9) {
+            now.setDate(now.getDate() + 1);
+        }
         const tomorrow = new Date(now);
         tomorrow.setDate(now.getDate() + 1);
         const { data: windows, error } = await supabase
