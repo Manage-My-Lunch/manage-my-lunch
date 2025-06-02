@@ -6,8 +6,8 @@ import { supabase } from "@/lib/supabase";
 //could be moved to a .ts file
 type Order = {
   id: string;
-  first_name: string,
-  last_name: string,
+  first_name: string;
+  last_name: string;
   collection_point_name: string;
   pickup_open: string;
   pickup_close: string;
@@ -19,15 +19,23 @@ type Order = {
 };
 
 function makeUnwrappable(str: string) {
-  return str.replace(/ /g, "\u00A0").replace(/-/g, "\u2011")
+  return str.replace(/ /g, "\u00A0").replace(/-/g, "\u2011");
 }
 
 export default function Index() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
+  const [baseFilteredOrders, setBaseFilteredOrders] = useState<Order[]>([]);
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [searchId, setSearchId] = useState("");
+
+  const [selectedDate, setSelectedDate] = useState(
+    () => new Date().toISOString().split("T")[0]
+  );
+  const [collectionPoints, setCollectionPoints] = useState<string[]>([]);
+  const [selectedCollection, setSelectedCollection] = useState("All");
 
   const listRef = useRef<FlatList<Order>>(null);
 
@@ -40,68 +48,74 @@ export default function Index() {
   });
 
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
-    fetchOrders(today);
-  }, []);
+    fetchOrders(selectedDate);
+  }, [selectedDate]);
+
+  useEffect(() => {
+    const pts = Array.from(
+      new Set(orders.map((o) => o.collection_point_name))
+    ).sort();
+    setCollectionPoints(["All", ...pts]);
+    applyCollectionFilter(orders, selectedCollection);
+  }, [orders]);
+
+  useEffect(() => {
+    applyCollectionFilter(orders, selectedCollection);
+  }, [selectedCollection]);
 
   const fetchOrders = async (givenDate: string) => {
+    setLoading(true);
     try {
-      setLoading(true);
-      //adjust given_date argument when applying more sorting with more data!!!
-      const { data, error } = await supabase.rpc('fetch_orders', { given_date: givenDate });
-      
+      const { data, error } = await supabase
+        .rpc("fetch_orders", { given_date: givenDate });
       if (error) throw error;
-      
-      const uncollected = data.filter((order: Order) => order.collected_at === null);
-
-      //for future sorting
-      const sortedData = uncollected;
-
-      setOrders(sortedData);
-      setFilteredOrders(sortedData);
+      const uncollected = data.filter(
+        (order: Order) => order.collected_at === null
+      );
+      setOrders(uncollected);
     } catch (error) {
       console.error("Error fetching orders:", error);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // const jumpToOrder = (searchId: string) => {
-  //   const index = orders.findIndex((order) => order.id === searchId);
-  //   if (index !== -1 && listRef.current) {
-  //     listRef.current.scrollToIndex({ index, animated: true });
-  //   } else {
-  //     // just used window alert instead of React Alert because platform manager should be desktop only
-  //     window.alert(`No order with the ID "${searchId}" was found.`);
-  //     console.warn("Order ID not found:", searchId);
-  //   }
-  // };
+  function applyCollectionFilter(
+    allOrders: Order[],
+    collection: string
+  ) {
+    const base =
+      collection === "All"
+        ? allOrders
+        : allOrders.filter((o) => o.collection_point_name === collection);
+    setBaseFilteredOrders(base);
+    setFilteredOrders(base);
+  }
 
   const filterOrders = (searchName: string) => {
-    const search = searchName.trim().toLowerCase();
-  
-    if (!search) {
-      setFilteredOrders(orders); // reset filter if empty
-      return;
+    const s = searchName.trim().toLowerCase();
+    if (!s) {
+      setFilteredOrders(baseFilteredOrders);
+    } else {
+      setFilteredOrders(
+        baseFilteredOrders.filter((order) =>
+          `${order.first_name} ${order.last_name}`
+            .toLowerCase()
+            .includes(s)
+        )
+      );
     }
-  
-    const filtered = orders.filter((order) => {
-      const fullName = `${order.first_name} ${order.last_name}`.toLowerCase();
-      return fullName.includes(search);
-    });
-  
-    setFilteredOrders(filtered);
   };
 
-  const collectOrder = async(orderId: string) => {
-    const { error } = await supabase.rpc('collect_order', {order_id: orderId});
-  
+  const collectOrder = async (orderId: string) => {
+    const { error } = await supabase.rpc("collect_order", {
+      order_id: orderId,
+    });
     if (error) {
-      console.error("Error marking order as collected:", error);
       window.alert("Failed to confirm pickup.");
       return false;
     }
-
     return true;
   };
 
@@ -120,12 +134,24 @@ export default function Index() {
   const renderItem = ({ item }: { item: Order }) => (
     <View style={styles.item}>
       <View style={styles.row}>
-        <Text style={styles.itemTextWide}>{item.first_name} {item.last_name}</Text>
-        <Text style={styles.itemTextWide}>{item.collection_point_name}</Text>
         <Text style={styles.itemTextWide}>
-          {item.pickup_open ? makeUnwrappable(dateFormatter.format(new Date(item.pickup_open))) : "N/A"}
+          {item.first_name} {item.last_name}
+        </Text>
+        <Text style={styles.itemTextWide}>
+          {item.collection_point_name}
+        </Text>
+        <Text style={styles.itemTextWide}>
+          {item.pickup_open
+            ? makeUnwrappable(
+                dateFormatter.format(new Date(item.pickup_open))
+              )
+            : "N/A"}
           <Text style={{ flexShrink: 0 }}>{"  -  "}</Text>
-          {item.pickup_close ? makeUnwrappable(dateFormatter.format(new Date(item.pickup_close))) : "N/A"}
+          {item.pickup_close
+            ? makeUnwrappable(
+                dateFormatter.format(new Date(item.pickup_close))
+              )
+            : "N/A"}
         </Text>
         <Text style={[styles.itemText, styles.centerText]}>
           {item.delivered_at ? "✔" : "✖"}
@@ -163,12 +189,56 @@ export default function Index() {
     </View>
   );
 
+  const todayIso = new Date().toISOString().split("T")[0];
+
   return (
     <View style={styles.container}>
-      <Pressable style={[styles.button, styles.homeButton]} onPress={() => router.push("/")}>
-        <Text style={styles.buttonText}>Home</Text>
-      </Pressable>
+      {/* existing button row unchanged */}
+      <View style={styles.buttonRow}>
+        <Pressable
+          style={styles.button}
+          onPress={() => router.push("/")}
+        >
+          <Text style={styles.buttonText}>Home</Text>
+        </Pressable>
+        <Pressable
+          style={styles.button}
+          onPress={() => router.push("/sales-report")}
+        >
+          <Text style={styles.buttonText}>Sales Report</Text>
+        </Pressable>
+      </View>
 
+      {/* new filters row */}
+      <View style={styles.filterRow}>
+        {/* collection point dropdown */}
+        <select
+          value={selectedCollection}
+          onChange={(e) =>
+            setSelectedCollection(e.target.value)
+          }
+          style={styles.selectInput as any}
+        >
+          {collectionPoints.map((pt) => (
+            <option key={pt} value={pt}>
+              {pt}
+            </option>
+          ))}
+        </select>
+
+        {/* date picker */}
+        <input
+          type="date"
+          value={selectedDate}
+          onChange={(e) => setSelectedDate(e.target.value)}
+          style={styles.dateInput as any}
+        />
+        {selectedDate === todayIso && (
+          <Text style={styles.todayLabel}>Today</Text>
+        )}
+      </View>
+
+      {/* search row unchanged */}
       <View style={styles.searchContainer}>
         <TextInput
           style={styles.searchInput}
@@ -204,8 +274,54 @@ const styles = StyleSheet.create({
     alignItems: "stretch",
     width: "100%",
   },
-  homeButton: {
-    alignSelf: "center",
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 10,
+  },
+  filterRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 8,
+    marginVertical: 10,
+  },
+  selectInput: {
+    padding: 8,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 8,
+    fontSize: 16,
+    minWidth: 140,
+  },
+  dateInput: {
+    padding: 8,
+    fontSize: 16,
+    borderRadius: 8,
+    borderColor: "#ccc",
+    borderWidth: 1,
+  },
+  todayLabel: {
+    marginLeft: 6,
+    fontSize: 16,
+    fontStyle: "italic",
+  },
+  searchContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginVertical: 10,
+  },
+  searchInput: {
+    flex: 1,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 10,
+    marginRight: 8,
+    fontSize: 16,
   },
   button: {
     backgroundColor: "#00BFA6",
@@ -269,23 +385,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#333",
   },
-  searchContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginVertical: 10,
-  },
-  searchInput: {
-    flex: 1,
-    borderColor: "#ccc",
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 10,
-    marginRight: 8,
-    fontSize: 16,
-  },
   centerText: {
     textAlign: "center",
-  }
-
+  },
 });

@@ -11,6 +11,7 @@ interface SalesReport {
 export default function Index() {
   const router = useRouter();
   const [salesReport, setSalesReport] = useState<SalesReport | null>(null);
+  const [today, setToday] = useState(() => new Date().toISOString().split("T")[0]);
 
   const fetchSalesReport = async (givenDate: string) => {
     try {
@@ -30,26 +31,47 @@ export default function Index() {
   };
 
   useEffect(() => {
-    const today = new Date().toISOString().split("T")[0];
     fetchSalesReport(today);
-  }, []);
+  }, [today]);
 
   return (
     <View style={styles.container}>
-      <Pressable style={styles.button} onPress={() => router.push("/")}>
-        <Text style={styles.buttonText}>Home</Text>
-      </Pressable>
-      
-      {salesReport ? (
-        <>
-          <Text>Total Orders: {salesReport.total_orders}</Text>
-          <Text>Total Cost: {salesReport.total_cost !== null ? `$${salesReport.total_cost.toFixed(2)}` : "Not Available"}</Text>
+      <View style={styles.buttonRow}>
+        <Pressable style={styles.button} onPress={() => router.push("/")}>
+          <Text style={styles.buttonText}>Home</Text>
+        </Pressable>
 
-        </>
-      ) : (
-        <Text>No data available for given date</Text>
-      )}
+        <Pressable style={styles.button} onPress={() => router.push("/platform-manager")}>
+          <Text style={styles.buttonText}>Platform Manager</Text>
+        </Pressable>
+      </View>
 
+
+      <Text style={styles.heading}>Sales Report</Text>
+
+      <input
+        type="date"
+        value={today}
+        onChange={(e) => setToday(e.target.value)}
+        style={styles.dateInput as any}
+      />
+
+      <View style={styles.reportContainer}>
+        <Text style={styles.dateLabel}>Date: {today}</Text>
+        {salesReport ? (
+          <>
+            <Text style={styles.metric}>Total Orders: {salesReport.total_orders}</Text>
+            <Text style={styles.metric}>
+              Total Cost:{" "}
+              {salesReport.total_cost !== null
+                ? `$${salesReport.total_cost.toFixed(2)}`
+                : "Not Available"}
+            </Text>
+          </>
+        ) : (
+          <Text style={styles.noData}>No data available for this date.</Text>
+        )}
+      </View>
     </View>
   );
 }
@@ -57,7 +79,9 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
+    paddingTop: 40,
+    paddingHorizontal: 20,
+    backgroundColor: "#f9f9f9",
     alignItems: "center",
   },
   button: {
@@ -73,4 +97,51 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     textAlign: "center",
   },
+  heading: {
+    fontSize: 22,
+    fontWeight: "600",
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  dateInput: {
+    padding: 8,
+    fontSize: 16,
+    marginVertical: 10,
+    borderRadius: 6,
+    borderColor: "#ccc",
+    borderWidth: 1,
+    minWidth: 180,
+  },
+  reportContainer: {
+    marginTop: 15,
+    padding: 16,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderColor: "#e0e0e0",
+    borderWidth: 1,
+    maxWidth: 360,
+    width: "100%",
+  },
+  dateLabel: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginBottom: 8,
+  },
+  metric: {
+    fontSize: 16,
+    marginBottom: 6,
+    color: "#333",
+  },
+  noData: {
+    fontSize: 15,
+    color: "#666",
+  },
+  buttonRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 10,
+  },
+
 });
