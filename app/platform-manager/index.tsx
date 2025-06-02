@@ -64,7 +64,6 @@ export default function Index() {
   }, [selectedCollection]);
 
   const fetchOrders = async (givenDate: string) => {
-    console.log("fetching orders for", givenDate);
     setLoading(true);
     try {
       const { data, error } = await supabase
