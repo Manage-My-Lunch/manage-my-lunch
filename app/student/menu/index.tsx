@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
     Text,
     View,
@@ -46,7 +46,7 @@ export function Index() {
     useEffect(() => {
         fetchRestaurants();
         fetchUnclaimedOrdersCount();
-    }, [categoryFilter]);
+    }, [categoryFilter, sortType]);
 
     // When supabase table is updated listen so if restaurant marked busy it shows busy
     useEffect(() => {
@@ -85,7 +85,7 @@ export function Index() {
         return () => {
             supabase.removeChannel(restaurantChannel);
         };
-    }, []);
+    }, [sortType]);
 
     // Refresh unclaimed orders count when page gets focus
     useFocusEffect(
