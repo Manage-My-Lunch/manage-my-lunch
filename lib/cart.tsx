@@ -530,6 +530,7 @@ export class Cart {
                     updated_at: now,
                     pickup_window: pickupWindowId,
                     stripe_payment_intent: paymentIntent,
+                    points_earned: 1, // Award 1 point per completed order
                 })
                 .eq("id", this.#id);
 
@@ -539,6 +540,32 @@ export class Cart {
                     completeOrderError
                 );
                 throw completeOrderError;
+            }
+
+            // Update user's points after successful order completion
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (user && !userError) {
+                // Get current user points
+                const { data: currentUserData, error: getUserError } = await supabase
+                    .from("user")
+                    .select("points")
+                    .eq("id", user.id)
+                    .single();
+
+                if (!getUserError && currentUserData) {
+                    // Add 1 point to user's total
+                    const { error: updatePointsError } = await supabase
+                        .from("user")
+                        .update({ points: (currentUserData.points || 0) + 1 })
+                        .eq("id", user.id);
+
+                    if (updatePointsError) {
+                        console.error("Error updating user points:", updatePointsError);
+                        // Don't throw here - order is already completed, points update is secondary
+                    }
+                } else {
+                    console.error("Error fetching user data for points update:", getUserError);
+                }
             }
         } catch (error) {
             console.error("Unexpected error during completeOrder:", error);
